@@ -1,0 +1,59 @@
+{
+  "name": "bookshelf-fetch-jsonapi",
+  "version": "1.0.0",
+  "description": "Fetch bookshelf model using jsonapi query parameter",
+  "main": "plugin.js",
+  "scripts": {
+    "lint": "eslint src/**/*.js",
+    "test": "mocha --compilers js:babel-core/register --bail src/**/*.spec.js",
+    "test:coverage": "istanbul cover _mocha -- --compilers js:babel-core/register --bail src/**/*.spec.js",
+    "prepublish": "npm run clean && npm run build",
+    "clean": "rm -rf dist",
+    "build": "babel -q -L -D ./src/ --out-dir ./dist/ --ignore ./src/**/*.spec.js"
+  },
+  "keywords": [
+    "bookshelf",
+    "jsonapi",
+    "query",
+    "params"
+  ],
+  "author": "Nauval Atmaja",
+  "babel": {
+    "presets": [
+      "latest"
+    ],
+    "env": {
+      "test": {
+        "plugins": [
+          "rewire"
+        ]
+      }
+    }
+  },
+  "eslintConfig": {
+    "parser": "babel-eslint",
+    "extends": "airbnb",
+    "glogbals": {
+      "__DEV__": true
+    },
+    "env": {
+      "mocha": true,
+      "node": true
+    },
+    "rules": {
+      "no-confusing-arrow": 0
+    }
+  },
+  "license": "ISC",
+  "devDependencies": {
+    "babel-eslint": "^7.1.1",
+    "bookshelf": "^0.10.3",
+    "eslint": "^3.14.0",
+    "eslint-config-airbnb": "^14.0.0",
+    "eslint-plugin-import": "^2.2.0",
+    "eslint-plugin-jsx-a11y": "^3.0.2",
+    "eslint-plugin-react": "^6.9.0",
+    "knex": "^0.12.6",
+    "sqlite3": "^3.1.8"
+  }
+}
