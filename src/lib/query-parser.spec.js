@@ -9,15 +9,14 @@ const query = {
   },
 };
 
+const takeFromQuery = path =>
+  R.assocPath(path, R.path(path, query), {});
+
 describe.only('lib/query-parser', () => {
   describe('filter', () => {
     describe('filter[name]=foo', () => {
       it('returns filter.name = foo', () => {
-        const q = R.assocPath(
-          ['filter', 'name'],
-          query.filter.name,
-          {},
-        );
+        const q = takeFromQuery(['filter', 'name']);
         const expected = {
           name: 'foo',
         };
@@ -29,17 +28,23 @@ describe.only('lib/query-parser', () => {
 
     describe('filter[tag]=foo,bar,baz', () => {
       it('returns filter.tags = [foo, bar, baz]', () => {
-        const q = R.assocPath(
-          ['filter', 'tags'],
-          query.filter.tags,
-          {},
-        );
+        const q = takeFromQuery(['filter', 'tags']);
         const expected = {
           tags: ['foo', 'bar', 'baz'],
         };
         const r = lib(q);
 
-        expect(r).have.property('filter').that.eql(expected);
+        expect(r).to.have.property('filter').that.eql(expected);
+      });
+    });
+
+    describe('filter[baz]=', () => {
+      it('returns filter.baz=\'\'', () => {
+        const q = { filter: { baz: '' } };
+        const r = lib(q);
+        const expected = { baz: '' };
+
+        expect(r).to.have.property('filter').that.eql(expected);
       });
     });
   });
