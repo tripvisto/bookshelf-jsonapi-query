@@ -1,11 +1,14 @@
 import R from 'ramda';
 
-const splitStringWithComma = R.when(R.test(/,/), R.split(','));
+const splitStringWithComma = R.when(
+  // only split the input when it is a string otherwise return it
+  R.allPass([R.is(String), R.test(/,/)]),
+  R.split(','));
+
 const splitValuesToArrays = R.pipe(
   R.toPairs,
   R.map(([x, v]) => [x, splitStringWithComma(v)]),
-  R.fromPairs,
-);
+  R.fromPairs);
 
 const parseFilter = R.curry((q, o) =>
   R.pipe(

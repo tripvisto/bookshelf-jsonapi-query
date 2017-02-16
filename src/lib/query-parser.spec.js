@@ -6,6 +6,8 @@ const query = {
   filter: {
     name: 'foo',
     tags: 'foo,bar,baz',
+    empty: '',
+    array: ['foo', 'bar'],
   },
 };
 
@@ -38,11 +40,21 @@ describe.only('lib/query-parser', () => {
       });
     });
 
-    describe('filter[baz]=', () => {
-      it('returns filter.baz=\'\'', () => {
-        const q = { filter: { baz: '' } };
+    describe('filter[empty]=', () => {
+      it('returns filter.empty=\'\'', () => {
+        const q = takeFromQuery(['filter', 'empty']);
         const r = lib(q);
-        const expected = { baz: '' };
+        const expected = { empty: '' };
+
+        expect(r).to.have.property('filter').that.eql(expected);
+      });
+    });
+
+    describe('parsed filter[array]=[foo, bar]', () => {
+      it('returns filter.array = [foo, bar]', () => {
+        const q = takeFromQuery(['filter', 'array']);
+        const r = lib(q);
+        const expected = { array: ['foo', 'bar'] };
 
         expect(r).to.have.property('filter').that.eql(expected);
       });
