@@ -155,5 +155,20 @@ describe.only('lib/query-parser', () => {
         expect(r).to.have.property('filter').that.include(expected);
       });
     });
+
+    describe('filter[contains][contains]=20', () => {
+      it('returns filter[{ column: contains, operator: contains, value: %hello% }]', () => {
+        const q = takeFromQuery(['filter', 'contains']);
+        const r = lib(q);
+        const expected = {
+          column: 'contains',
+          operator: 'like',
+          value: '%hello%',
+        };
+
+        expect(r).to.have.property('filter').that.length(1);
+        expect(r).to.have.property('filter').that.include(expected);
+      });
+    });
   });
 });

@@ -51,7 +51,7 @@ const filterItemBuilder = {
   },
 
   contains(column, value) {
-    return buildFilterItem('like', column, `%${value}%`);
+    return buildFilterItem('like', column, `%${getFirstValue(value)}%`);
   },
 };
 
