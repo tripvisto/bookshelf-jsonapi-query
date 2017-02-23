@@ -7,7 +7,7 @@ const getFirstValue = R.pipe(R.values, R.head);
 const isNotRelation = R.allPass([R.is(String), R.compose(R.not, R.test(/\./))]);
 const isRelation = R.allPass([R.is(String), R.test(/\./)]);
 const throwUnsupportedOperator = (o) => {
-  throw new Error(`Unsuppported operator ${o}`);
+  throw new Error(`Unsuppported operator: ${o}`);
 };
 const throwError = R.curry((fnError, params) =>
   () => fnError(...params));

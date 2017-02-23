@@ -23,6 +23,9 @@ const query = {
     contains: {
       contains: 'hello',
     },
+    like: {
+      like: 'foo',
+    },
   },
 };
 
@@ -31,6 +34,15 @@ const takeFromQuery = path =>
 
 describe.only('lib/query-parser', () => {
   describe('filter', () => {
+    describe('filter[like][like]=foo', () => {
+      it('throws Unsuppported operator: like', () => {
+        const q = takeFromQuery(['filter', 'like']);
+        const r = lib.bind(null, q);
+
+        expect(r).to.throw('Unsuppported operator: like');
+      });
+    });
+
     describe('filter[name]=foo', () => {
       it('returns filter[Object(name in foo)]', () => {
         const q = takeFromQuery(['filter', 'name']);
