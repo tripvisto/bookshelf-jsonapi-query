@@ -8,6 +8,21 @@ const query = {
     tags: 'foo,bar,baz',
     empty: '',
     array: ['foo', 'bar'],
+    lt: {
+      lt: 20,
+    },
+    lte: {
+      lte: 20,
+    },
+    gt: {
+      gt: 20,
+    },
+    gte: {
+      gte: 20,
+    },
+    contains: {
+      contains: 'hello',
+    },
   },
 };
 
@@ -17,46 +32,97 @@ const takeFromQuery = path =>
 describe.only('lib/query-parser', () => {
   describe('filter', () => {
     describe('filter[name]=foo', () => {
-      it('returns filter.name = foo', () => {
+      it('returns filter[Object(name in foo)]', () => {
         const q = takeFromQuery(['filter', 'name']);
         const expected = {
-          name: 'foo',
+          column: 'name',
+          operator: 'in',
+          value: 'foo',
         };
         const r = lib(q);
 
-        expect(r.filter).eql(expected);
+        expect(r).to.have.property('filter').that.is.an('array');
+        expect(r).to.have.property('filter').that.length(1);
+        expect(r).to.have.property('filter').that.include(expected);
       });
     });
 
     describe('filter[tag]=foo,bar,baz', () => {
-      it('returns filter.tags = [foo, bar, baz]', () => {
+      it('returns filter[Object(tags in [foo, bar, baz])]', () => {
         const q = takeFromQuery(['filter', 'tags']);
         const expected = {
-          tags: ['foo', 'bar', 'baz'],
+          column: 'tags',
+          operator: 'in',
+          value: ['foo', 'bar', 'baz'],
         };
         const r = lib(q);
 
-        expect(r).to.have.property('filter').that.eql(expected);
+        expect(r).to.have.property('filter').that.is.an('array');
+        expect(r).to.have.property('filter').that.length(1);
+        expect(r).to.have.property('filter').that.include(expected);
       });
     });
 
     describe('filter[empty]=', () => {
-      it('returns filter.empty=\'\'', () => {
+      it('returns filter[Object(empty in \'\')]', () => {
         const q = takeFromQuery(['filter', 'empty']);
         const r = lib(q);
-        const expected = { empty: '' };
+        const expected = {
+          column: 'empty',
+          operator: 'in',
+          value: '',
+        };
 
-        expect(r).to.have.property('filter').that.eql(expected);
+
+        expect(r).to.have.property('filter').that.is.an('array');
+        expect(r).to.have.property('filter').that.length(1);
+        expect(r).to.have.property('filter').that.include(expected);
       });
     });
 
     describe('parsed filter[array]=[foo, bar]', () => {
-      it('returns filter.array = [foo, bar]', () => {
+      it('returns filter[Object(array in [foo, bar])]', () => {
         const q = takeFromQuery(['filter', 'array']);
         const r = lib(q);
-        const expected = { array: ['foo', 'bar'] };
+        const expected = {
+          column: 'array',
+          operator: 'in',
+          value: ['foo', 'bar'],
+        };
 
-        expect(r).to.have.property('filter').that.eql(expected);
+        expect(r).to.have.property('filter').that.is.an('array');
+        expect(r).to.have.property('filter').that.length(1);
+        expect(r).to.have.property('filter').that.include(expected);
+      });
+    });
+
+    describe('filter[lt][lt]=20', () => {
+      it('returns filter[{ column: lt, operator: <, value: 20 }]', () => {
+        const q = takeFromQuery(['filter', 'lt']);
+        const r = lib(q);
+        const expected = {
+          column: 'lt',
+          operator: '<',
+          value: 20,
+        };
+
+        expect(r).to.have.property('filter').that.length(1);
+        expect(r).to.have.property('filter').that.include(expected);
+      });
+    });
+
+    describe('filter[lte][lte]=20', () => {
+      it('returns filter[{ column: lte, operator: <=, value: 20 }]', () => {
+        const q = takeFromQuery(['filter', 'lte']);
+        const r = lib(q);
+        const expected = {
+          column: 'lte',
+          operator: '<=',
+          value: 20,
+        };
+
+        expect(r).to.have.property('filter').that.length(1);
+        expect(r).to.have.property('filter').that.include(expected);
       });
     });
   });
