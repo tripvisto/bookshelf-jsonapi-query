@@ -125,5 +125,35 @@ describe.only('lib/query-parser', () => {
         expect(r).to.have.property('filter').that.include(expected);
       });
     });
+
+    describe('filter[gt][gt]=20', () => {
+      it('returns filter[{ column: gt, operator: >, value: 20 }]', () => {
+        const q = takeFromQuery(['filter', 'gt']);
+        const r = lib(q);
+        const expected = {
+          column: 'gt',
+          operator: '>',
+          value: 20,
+        };
+
+        expect(r).to.have.property('filter').that.length(1);
+        expect(r).to.have.property('filter').that.include(expected);
+      });
+    });
+
+    describe('filter[gte][gte]=20', () => {
+      it('returns filter[{ column: gte, operator: >, value: 20 }]', () => {
+        const q = takeFromQuery(['filter', 'gte']);
+        const r = lib(q);
+        const expected = {
+          column: 'gte',
+          operator: '>=',
+          value: 20,
+        };
+
+        expect(r).to.have.property('filter').that.length(1);
+        expect(r).to.have.property('filter').that.include(expected);
+      });
+    });
   });
 });
