@@ -29,8 +29,11 @@ const query = {
   },
 };
 
-const takeFromQuery = path =>
-  R.assocPath(path, R.path(path, query), {});
+const takeFromQuery = (path, value) =>
+  R.assocPath(
+    path,
+    R.ifElse(R.isNil, R.always(R.path(path, query)), R.identity)(value),
+    {});
 
 describe.only('lib/query-parser', () => {
   describe('filter', () => {
@@ -101,6 +104,15 @@ describe.only('lib/query-parser', () => {
       });
     });
 
+    describe('parsed filter[array]=[]', () => {
+      it('returns filter[]', () => {
+        const q = takeFromQuery(['filter', 'array'], '');
+        const r = lib(q);
+
+        expect(r).to.have.property('filter').that.length(0);
+      });
+    });
+
     describe('filter[lt][lt]=20', () => {
       it('returns filter[Object(lt < 20)]', () => {
         const q = takeFromQuery(['filter', 'lt']);
@@ -113,6 +125,15 @@ describe.only('lib/query-parser', () => {
 
         expect(r).to.have.property('filter').that.length(1);
         expect(r).to.have.property('filter').that.include(expected);
+      });
+    });
+
+    describe('filter[lt][lt]=', () => {
+      it('returns filter[]', () => {
+        const q = takeFromQuery(['filter', 'lt'], { lt: '' });
+        const r = lib(q);
+
+        expect(r).to.have.property('filter').that.length(0);
       });
     });
 
@@ -131,6 +152,16 @@ describe.only('lib/query-parser', () => {
       });
     });
 
+
+    describe('filter[lte][lte]=', () => {
+      it('returns filter[]', () => {
+        const q = takeFromQuery(['filter', 'lte'], { lte: '' });
+        const r = lib(q);
+
+        expect(r).to.have.property('filter').that.length(0);
+      });
+    });
+
     describe('filter[gt][gt]=20', () => {
       it('returns filter[Object(gt > 20)]', () => {
         const q = takeFromQuery(['filter', 'gt']);
@@ -143,6 +174,15 @@ describe.only('lib/query-parser', () => {
 
         expect(r).to.have.property('filter').that.length(1);
         expect(r).to.have.property('filter').that.include(expected);
+      });
+    });
+
+    describe('filter[gt][gt]=', () => {
+      it('returns filter[]', () => {
+        const q = takeFromQuery(['filter', 'gt'], { gt: '' });
+        const r = lib(q);
+
+        expect(r).to.have.property('filter').that.length(0);
       });
     });
 
@@ -161,6 +201,15 @@ describe.only('lib/query-parser', () => {
       });
     });
 
+    describe('filter[gte][gte]=', () => {
+      it('returns filter[]', () => {
+        const q = takeFromQuery(['filter', 'gte'], { gte: '' });
+        const r = lib(q);
+
+        expect(r).to.have.property('filter').that.length(0);
+      });
+    });
+
     describe('filter[contains][contains]=20', () => {
       it('returns filter[Object(contains like %hello%)]', () => {
         const q = takeFromQuery(['filter', 'contains']);
@@ -173,6 +222,15 @@ describe.only('lib/query-parser', () => {
 
         expect(r).to.have.property('filter').that.length(1);
         expect(r).to.have.property('filter').that.include(expected);
+      });
+    });
+
+    describe('filter[contains][contains]=', () => {
+      it('returns filter[]', () => {
+        const q = takeFromQuery(['filter', 'contains'], { contains: '' });
+        const r = lib(q);
+
+        expect(r).to.have.property('filter').that.length(0);
       });
     });
 

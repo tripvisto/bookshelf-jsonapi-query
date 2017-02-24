@@ -32,33 +32,37 @@ const buildFilterItem = R.curry((operator, column, value) => ({
   value,
 }));
 
+const applyFnToParamOrReturnEmpty = R.curry((fn, v) => R.ifElse(
+  R.isEmpty,
+  R.empty,
+  fn,
+)(v));
+
 const filterItemBuilder = {
   in(column, value) {
-    return R.ifElse(
-      R.isEmpty,
-      R.empty,
-      buildFilterItem('in', column),
-    )(stringToArray(value));
+    return applyFnToParamOrReturnEmpty(buildFilterItem('in', column))(stringToArray(value));
   },
 
   lt(column, value) {
-    return buildFilterItem('<', column, getFirstValue(value));
+    return applyFnToParamOrReturnEmpty(buildFilterItem('<', column))(getFirstValue(value));
   },
 
   lte(column, value) {
-    return buildFilterItem('<=', column, getFirstValue(value));
+    return applyFnToParamOrReturnEmpty(buildFilterItem('<=', column))(getFirstValue(value));
   },
 
   gt(column, value) {
-    return buildFilterItem('>', column, getFirstValue(value));
+    return applyFnToParamOrReturnEmpty(buildFilterItem('>', column))(getFirstValue(value));
   },
 
   gte(column, value) {
-    return buildFilterItem('>=', column, getFirstValue(value));
+    return applyFnToParamOrReturnEmpty(buildFilterItem('>=', column))(getFirstValue(value));
   },
 
   contains(column, value) {
-    return buildFilterItem('like', column, `%${getFirstValue(value)}%`);
+    return applyFnToParamOrReturnEmpty(
+      R.pipe(v => `%${v}%`, buildFilterItem('like', column)),
+    )(getFirstValue(value));
   },
 };
 
