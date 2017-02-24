@@ -44,12 +44,12 @@ describe.only('lib/query-parser', () => {
     });
 
     describe('filter[name]=foo', () => {
-      it('returns filter[Object(name in foo)]', () => {
+      it('returns filter[Object(name in [foo])]', () => {
         const q = takeFromQuery(['filter', 'name']);
         const expected = {
           column: 'name',
           operator: 'in',
-          value: 'foo',
+          value: ['foo'],
         };
         const r = lib(q);
 
@@ -76,19 +76,12 @@ describe.only('lib/query-parser', () => {
     });
 
     describe('filter[empty]=', () => {
-      it('returns filter[Object(empty in \'\')]', () => {
+      it('returns filter[]', () => {
         const q = takeFromQuery(['filter', 'empty']);
         const r = lib(q);
-        const expected = {
-          column: 'empty',
-          operator: 'in',
-          value: '',
-        };
-
 
         expect(r).to.have.property('filter').that.is.an('array');
-        expect(r).to.have.property('filter').that.length(1);
-        expect(r).to.have.property('filter').that.include(expected);
+        expect(r).to.have.property('filter').that.length(0);
       });
     });
 
@@ -109,7 +102,7 @@ describe.only('lib/query-parser', () => {
     });
 
     describe('filter[lt][lt]=20', () => {
-      it('returns filter[{ column: lt, operator: <, value: 20 }]', () => {
+      it('returns filter[Object(lt < 20)]', () => {
         const q = takeFromQuery(['filter', 'lt']);
         const r = lib(q);
         const expected = {
@@ -124,7 +117,7 @@ describe.only('lib/query-parser', () => {
     });
 
     describe('filter[lte][lte]=20', () => {
-      it('returns filter[{ column: lte, operator: <=, value: 20 }]', () => {
+      it('returns filter[Object(lte <= 20)]', () => {
         const q = takeFromQuery(['filter', 'lte']);
         const r = lib(q);
         const expected = {
@@ -139,7 +132,7 @@ describe.only('lib/query-parser', () => {
     });
 
     describe('filter[gt][gt]=20', () => {
-      it('returns filter[{ column: gt, operator: >, value: 20 }]', () => {
+      it('returns filter[Object(gt > 20)]', () => {
         const q = takeFromQuery(['filter', 'gt']);
         const r = lib(q);
         const expected = {
@@ -154,7 +147,7 @@ describe.only('lib/query-parser', () => {
     });
 
     describe('filter[gte][gte]=20', () => {
-      it('returns filter[{ column: gte, operator: >, value: 20 }]', () => {
+      it('returns filter[Object(gte >= 20)]', () => {
         const q = takeFromQuery(['filter', 'gte']);
         const r = lib(q);
         const expected = {
@@ -169,7 +162,7 @@ describe.only('lib/query-parser', () => {
     });
 
     describe('filter[contains][contains]=20', () => {
-      it('returns filter[{ column: contains, operator: contains, value: %hello% }]', () => {
+      it('returns filter[Object(contains like %hello%)]', () => {
         const q = takeFromQuery(['filter', 'contains']);
         const r = lib(q);
         const expected = {
@@ -180,6 +173,31 @@ describe.only('lib/query-parser', () => {
 
         expect(r).to.have.property('filter').that.length(1);
         expect(r).to.have.property('filter').that.include(expected);
+      });
+    });
+
+    describe('filter[name]=foo&filter[contains][contains]=20', () => {
+      it('returns filter[Object(name in [foo]), Object(contains like %hello%)]', () => {
+        const q = R.pipe(
+          R.merge(takeFromQuery(['filter', 'contains']).filter),
+          R.merge(takeFromQuery(['filter', 'name']).filter),
+          R.assocPath(['filter'], R.__, {}),
+        )({});
+        const r = lib(q);
+        const expected1 = {
+          column: 'contains',
+          operator: 'like',
+          value: '%hello%',
+        };
+        const expected2 = {
+          column: 'name',
+          operator: 'in',
+          value: ['foo'],
+        };
+
+        expect(r).to.have.property('filter').that.length(2);
+        expect(r).to.have.property('filter').that.include(expected1);
+        expect(r).to.have.property('filter').that.include(expected2);
       });
     });
   });

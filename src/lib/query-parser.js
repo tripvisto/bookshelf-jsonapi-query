@@ -18,10 +18,13 @@ const executeOrThrowWhenNil = R.curry((fnError, errParams, fnParams) =>
     f => f(...fnParams),
   ));
 
-const splitStringWithComma = R.when(
-  // only split the input when it is a string otherwise return it
-  R.allPass([R.is(String), R.test(/,/)]),
-  R.split(','));
+
+const stringToArray = R.cond([
+  [R.isEmpty, R.empty],
+  [R.allPass([R.is(String), R.test(/,/)]), R.split(',')],
+  [R.is(String), R.of],
+  [R.T, R.identity],
+]);
 
 const buildFilterItem = R.curry((operator, column, value) => ({
   column,
@@ -31,7 +34,11 @@ const buildFilterItem = R.curry((operator, column, value) => ({
 
 const filterItemBuilder = {
   in(column, value) {
-    return buildFilterItem('in', column, splitStringWithComma(value));
+    return R.ifElse(
+      R.isEmpty,
+      R.empty,
+      buildFilterItem('in', column),
+    )(stringToArray(value));
   },
 
   lt(column, value) {
@@ -84,7 +91,9 @@ const parseFilterValue = R.curry((k, v) =>
 
 const processFilter = R.pipe(
   R.toPairs,
-  R.map(([x, v]) => parseFilterValue(x, v)));
+  R.map(([x, v]) => parseFilterValue(x, v)),
+  R.filter(R.compose(R.not, R.isEmpty)),
+);
 
 const parseFilter = R.curry((q, o) =>
   R.pipe(
