@@ -26,6 +26,20 @@ const query = {
     like: {
       like: 'foo',
     },
+    'related.in': 'foo',
+    'related.inArray': 'foo,bar,baz',
+    'related.lt': {
+      lt: 20,
+    },
+    'related.contains': {
+      contains: 'hello',
+    },
+    'related.like': {
+      like: 'foo',
+    },
+    'related.table.contains': {
+      contains: 'hello',
+    },
   },
 };
 
@@ -40,6 +54,15 @@ describe.only('lib/query-parser', () => {
     describe('filter[like][like]=foo', () => {
       it('throws Unsuppported operator: like', () => {
         const q = takeFromQuery(['filter', 'like']);
+        const r = lib.bind(null, q);
+
+        expect(r).to.throw('Unsuppported operator: like');
+      });
+    });
+
+    describe('filter[related.like][like]=foo', () => {
+      it('throws Unsuppported operator: like', () => {
+        const q = takeFromQuery(['filter', 'related.like']);
         const r = lib.bind(null, q);
 
         expect(r).to.throw('Unsuppported operator: like');
@@ -234,12 +257,12 @@ describe.only('lib/query-parser', () => {
       });
     });
 
-    describe('filter[name]=foo&filter[contains][contains]=20', () => {
+    describe('filter[name]=foo&filter[contains][contains]=hello', () => {
       it('returns filter[Object(name in [foo]), Object(contains like %hello%)]', () => {
         const q = R.pipe(
           R.merge(takeFromQuery(['filter', 'contains']).filter),
           R.merge(takeFromQuery(['filter', 'name']).filter),
-          R.assocPath(['filter'], R.__, {}),
+          R.assocPath(['filter'], R.__, {}), // eslint-disable-line
         )({});
         const r = lib(q);
         const expected1 = {
@@ -256,6 +279,86 @@ describe.only('lib/query-parser', () => {
         expect(r).to.have.property('filter').that.length(2);
         expect(r).to.have.property('filter').that.include(expected1);
         expect(r).to.have.property('filter').that.include(expected2);
+      });
+    });
+
+    describe('filter[related.in]=foo', () => {
+      it('returns filter[Object([related] in in [foo])]', () => {
+        const q = takeFromQuery(['filter', 'related.in']);
+        const expected = {
+          relations: ['related'],
+          column: 'in',
+          operator: 'in',
+          value: ['foo'],
+        };
+        const r = lib(q);
+
+        expect(r).to.have.property('filter').that.length(1);
+        expect(r).to.have.property('filter').that.include(expected);
+      });
+    });
+
+    describe('filter[related.inArray]=foo,bar,baz', () => {
+      it('returns filter[Object([related] inArray in [foo, bar, baz])]', () => {
+        const q = takeFromQuery(['filter', 'related.inArray']);
+        const expected = {
+          relations: ['related'],
+          column: 'inArray',
+          operator: 'in',
+          value: ['foo', 'bar', 'baz'],
+        };
+        const r = lib(q);
+
+        expect(r).to.have.property('filter').that.length(1);
+        expect(r).to.have.property('filter').that.include(expected);
+      });
+    });
+
+    describe('filter[related.lt][lt]=20', () => {
+      it('returns filter[Object([related] lt < 20)]', () => {
+        const q = takeFromQuery(['filter', 'related.lt']);
+        const expected = {
+          relations: ['related'],
+          column: 'lt',
+          operator: '<',
+          value: 20,
+        };
+        const r = lib(q);
+
+        expect(r).to.have.property('filter').that.length(1);
+        expect(r).to.have.property('filter').that.include(expected);
+      });
+    });
+
+    describe('filter[related.contains][contains]=hello', () => {
+      it('returns filter[Object([related] contains like %hello%)]', () => {
+        const q = takeFromQuery(['filter', 'related.contains']);
+        const expected = {
+          relations: ['related'],
+          column: 'contains',
+          operator: 'like',
+          value: '%hello%',
+        };
+        const r = lib(q);
+
+        expect(r).to.have.property('filter').that.length(1);
+        expect(r).to.have.property('filter').that.include(expected);
+      });
+    });
+
+    describe('filter[related.table.contains][contains]=hello', () => {
+      it('returns filter[Object([related, table] contains like %hello%)]', () => {
+        const q = takeFromQuery(['filter', 'related.table.contains']);
+        const expected = {
+          relations: ['related', 'table'],
+          column: 'contains',
+          operator: 'like',
+          value: '%hello%',
+        };
+        const r = lib(q);
+
+        expect(r).to.have.property('filter').that.length(1);
+        expect(r).to.have.property('filter').that.include(expected);
       });
     });
   });

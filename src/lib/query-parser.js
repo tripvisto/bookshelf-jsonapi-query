@@ -84,14 +84,23 @@ const getOperatorAndBuildFilter = R.curry((k, v) =>
     buildFilter(R.__, k, v))); // eslint-disable-line no-underscore-dangle
 
 const parseNonRelationFilter = R.curry((k, v) =>
-  R.when(
-    isNotRelation,
-    getOperatorAndBuildFilter(k, v))(k));
+  getOperatorAndBuildFilter(k, v));
+
+const buildRelationProperty = R.pipe(
+  R.split('.'),
+  r => ({ relations: R.dropLast(1, r), column: R.last(r) }));
+
+const parseRelationFilter = R.curry((k, v) =>
+  R.pipe(
+    getOperatorAndBuildFilter(k, v),
+    R.flip(R.merge)(buildRelationProperty(k))));
 
 const parseFilterValue = R.curry((k, v) =>
-  R.pipe(
-    parseNonRelationFilter(k),
-  )(v));
+  R.cond([
+    [isNotRelation, parseNonRelationFilter(k, v)],
+    [isRelation, parseRelationFilter(k, v)],
+    [R.T, R.empty],
+  ])(k));
 
 const processFilter = R.pipe(
   R.toPairs,
