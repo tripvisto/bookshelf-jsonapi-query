@@ -41,6 +41,10 @@ const query = {
       contains: 'hello',
     },
   },
+  page: {
+    number: 8,
+    size: 10,
+  },
 };
 
 const takeFromQuery = (path, value) =>
@@ -359,6 +363,105 @@ describe.only('lib/query-parser', () => {
 
         expect(r).to.have.property('filter').that.length(1);
         expect(r).to.have.property('filter').that.include(expected);
+      });
+    });
+  });
+
+  describe('page', () => {
+    describe('page[number]=8&page[size]=10', () => {
+      it('returns page{Object(page: 8, pageSize: 10)}', () => {
+        const q = {
+          page: {
+            number: 8,
+            size: 10,
+          },
+        };
+        const expected = {
+          page: 8,
+          pageSize: 10,
+        };
+        const r = lib(q);
+
+        expect(r).to.have.property('page').that.eql(expected);
+      });
+    });
+
+    describe('page[number]=8', () => {
+      it('returns page{Object(page: 8, pageSize: 20)}', () => {
+        const q = {
+          page: {
+            number: 8,
+          },
+        };
+        const expected = {
+          page: 8,
+          pageSize: 20,
+        };
+        const r = lib(q);
+
+        expect(r).to.have.property('page').that.eql(expected);
+      });
+    });
+
+    describe('page[size]=8', () => {
+      it('returns page{Object(page: 1, pageSize: 20)}', () => {
+        const q = {
+          page: {
+            size: 8,
+          },
+        };
+        const expected = {
+          page: 1,
+          pageSize: 8,
+        };
+        const r = lib(q);
+
+        expect(r).to.have.property('page').that.eql(expected);
+      });
+    });
+
+    describe('page[size]=8', () => {
+      it('returns page{Object(page: 1, pageSize: 20)}', () => {
+        const q = {
+          page: {
+            size: 8,
+          },
+        };
+        const expected = {
+          page: 1,
+          pageSize: 8,
+        };
+        const r = lib(q);
+
+        expect(r).to.have.property('page').that.eql(expected);
+      });
+    });
+  });
+
+  describe('combination', () => {
+    describe('filter[name]=foo&page[number]=8&page[size]=10', () => {
+      it('returns { filter[Object(name in [foo])], page{page: 8, pageSize: 10} }', () => {
+        const q = R.pipe(
+          R.merge(takeFromQuery(['filter', 'name']).filter),
+          R.assocPath(['filter'], R.__, {}),
+          R.merge(takeFromQuery(['page'])),
+        )({});
+        const expected = {
+          filter: [
+            {
+              operator: 'in',
+              column: 'name',
+              value: ['foo'],
+            },
+          ],
+          page: {
+            page: 8,
+            pageSize: 10,
+          },
+        };
+        const r = lib(q);
+
+        expect(r).to.eql(expected);
       });
     });
   });

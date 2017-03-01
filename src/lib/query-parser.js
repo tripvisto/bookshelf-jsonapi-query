@@ -116,6 +116,19 @@ const parseFilter = R.curry((q, o) =>
     R.merge(o),
   )(q));
 
+const processPage = v => ({
+  page: R.propOr(1, 'number', v),
+  pageSize: R.propOr(20, 'size', v),
+});
+
+const parsePage = R.curry((q, o) =>
+  R.pipe(
+    R.propOr({}, 'page'),
+    processPage,
+    r => ({ page: r }),
+    R.merge(o),
+  )(q));
+
 /**
  * Parses express req.query so that it can be
  * consumed by the plugin
@@ -127,5 +140,6 @@ const parseFilter = R.curry((q, o) =>
 export default function parse(q) {
   return R.pipe(
     parseFilter(q),
+    parsePage(q),
   )({});
 }
