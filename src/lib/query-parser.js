@@ -1,6 +1,6 @@
 import R from 'ramda';
 
-
+const isNotEmpty = R.compose(R.not, R.isEmpty);
 const isObject = R.allPass([R.is(Object), R.compose(R.not, R.isArrayLike)]);
 const getFirstKey = R.pipe(R.keys, R.head);
 const getFirstValue = R.pipe(R.values, R.head);
@@ -105,7 +105,7 @@ const parseFilterValue = R.curry((k, v) =>
 const processFilter = R.pipe(
   R.toPairs,
   R.map(([x, v]) => parseFilterValue(x, v)),
-  R.filter(R.compose(R.not, R.isEmpty)),
+  R.filter(isNotEmpty),
 );
 
 const parseFilter = R.curry((q, o) =>
@@ -129,6 +129,25 @@ const parsePage = R.curry((q, o) =>
     R.merge(o),
   )(q));
 
+const buildSortItem = R.ifElse(
+  R.compose(R.equals('-'), R.head),
+  r => ({ column: R.drop(1, r), order: 'DESC' }),
+  r => ({ column: r, order: 'ASC' }),
+);
+
+const processSort = R.pipe(
+    stringToArray,
+    R.map(buildSortItem),
+  );
+
+const parseSort = R.curry((q, o) =>
+  R.pipe(
+    R.propOr({}, 'sort'),
+    processSort,
+    r => ({ sort: r }),
+    R.merge(o),
+  )(q));
+
 /**
  * Parses express req.query so that it can be
  * consumed by the plugin
@@ -141,5 +160,7 @@ export default function parse(q) {
   return R.pipe(
     parseFilter(q),
     parsePage(q),
+    parseSort(q),
+    R.filter(isNotEmpty),
   )({});
 }

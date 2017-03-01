@@ -45,6 +45,7 @@ const query = {
     number: 8,
     size: 10,
   },
+  sort: 'foo,-bar',
 };
 
 const takeFromQuery = (path, value) =>
@@ -110,8 +111,7 @@ describe.only('lib/query-parser', () => {
         const q = takeFromQuery(['filter', 'empty']);
         const r = lib(q);
 
-        expect(r).to.have.property('filter').that.is.an('array');
-        expect(r).to.have.property('filter').that.length(0);
+        expect(r).to.not.have.property('filter');
       });
     });
 
@@ -132,11 +132,11 @@ describe.only('lib/query-parser', () => {
     });
 
     describe('parsed filter[array]=[]', () => {
-      it('returns filter[]', () => {
+      it('returns Object without filter', () => {
         const q = takeFromQuery(['filter', 'array'], '');
         const r = lib(q);
 
-        expect(r).to.have.property('filter').that.length(0);
+        expect(r).to.not.have.property('filter');
       });
     });
 
@@ -156,11 +156,11 @@ describe.only('lib/query-parser', () => {
     });
 
     describe('filter[lt][lt]=', () => {
-      it('returns filter[]', () => {
+      it('returns Object without filter', () => {
         const q = takeFromQuery(['filter', 'lt'], { lt: '' });
         const r = lib(q);
 
-        expect(r).to.have.property('filter').that.length(0);
+        expect(r).to.not.have.property('filter');
       });
     });
 
@@ -181,11 +181,11 @@ describe.only('lib/query-parser', () => {
 
 
     describe('filter[lte][lte]=', () => {
-      it('returns filter[]', () => {
+      it('returns Object without filter', () => {
         const q = takeFromQuery(['filter', 'lte'], { lte: '' });
         const r = lib(q);
 
-        expect(r).to.have.property('filter').that.length(0);
+        expect(r).to.not.have.property('filter');
       });
     });
 
@@ -205,11 +205,11 @@ describe.only('lib/query-parser', () => {
     });
 
     describe('filter[gt][gt]=', () => {
-      it('returns filter[]', () => {
+      it('returns Object without filter', () => {
         const q = takeFromQuery(['filter', 'gt'], { gt: '' });
         const r = lib(q);
 
-        expect(r).to.have.property('filter').that.length(0);
+        expect(r).to.not.have.property('filter');
       });
     });
 
@@ -229,11 +229,11 @@ describe.only('lib/query-parser', () => {
     });
 
     describe('filter[gte][gte]=', () => {
-      it('returns filter[]', () => {
+      it('returns Object without filter', () => {
         const q = takeFromQuery(['filter', 'gte'], { gte: '' });
         const r = lib(q);
 
-        expect(r).to.have.property('filter').that.length(0);
+        expect(r).to.not.have.property('filter');
       });
     });
 
@@ -253,11 +253,11 @@ describe.only('lib/query-parser', () => {
     });
 
     describe('filter[contains][contains]=', () => {
-      it('returns filter[]', () => {
+      it('returns Object without filter', () => {
         const q = takeFromQuery(['filter', 'contains'], { contains: '' });
         const r = lib(q);
 
-        expect(r).to.have.property('filter').that.length(0);
+        expect(r).to.not.have.property('filter');
       });
     });
 
@@ -438,12 +438,77 @@ describe.only('lib/query-parser', () => {
     });
   });
 
+  describe('sort', () => {
+    describe('sort=foo,bar', () => {
+      it('returns sort[Object(foo, ASC), Object(bar ASC)]', () => {
+        const q = {
+          sort: 'foo,bar',
+        };
+        const expected = [
+          {
+            column: 'foo',
+            order: 'ASC',
+          },
+          {
+            column: 'bar',
+            order: 'ASC',
+          },
+        ];
+        const r = lib(q);
+
+        expect(r).to.have.property('sort').that.eql(expected);
+      });
+    });
+
+    describe('sort=foo,-bar', () => {
+      it('returns sort[Object(foo, ASC), Object(bar DESC)]', () => {
+        const q = {
+          sort: 'foo,-bar',
+        };
+        const expected = [
+          {
+            column: 'foo',
+            order: 'ASC',
+          },
+          {
+            column: 'bar',
+            order: 'DESC',
+          },
+        ];
+        const r = lib(q);
+
+        expect(r).to.have.property('sort').that.eql(expected);
+      });
+    });
+
+    describe('sort=-foo,-bar', () => {
+      it('returns sort[Object(foo, DESC), Object(bar DESC)]', () => {
+        const q = {
+          sort: '-foo,-bar',
+        };
+        const expected = [
+          {
+            column: 'foo',
+            order: 'DESC',
+          },
+          {
+            column: 'bar',
+            order: 'DESC',
+          },
+        ];
+        const r = lib(q);
+
+        expect(r).to.have.property('sort').that.eql(expected);
+      });
+    });
+  });
+
   describe('combination', () => {
     describe('filter[name]=foo&page[number]=8&page[size]=10', () => {
       it('returns { filter[Object(name in [foo])], page{page: 8, pageSize: 10} }', () => {
         const q = R.pipe(
           R.merge(takeFromQuery(['filter', 'name']).filter),
-          R.assocPath(['filter'], R.__, {}),
+          R.assocPath(['filter'], R.__, {}), // eslint-disable-line
           R.merge(takeFromQuery(['page'])),
         )({});
         const expected = {
