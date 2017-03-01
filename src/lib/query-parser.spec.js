@@ -503,6 +503,20 @@ describe.only('lib/query-parser', () => {
     });
   });
 
+  describe('include', () => {
+    describe('include=foo,bar,baz.buz', () => {
+      it('returns include[foo, bar, baz.buz]', () => {
+        const q = {
+          include: 'foo,bar,baz.buz',
+        };
+        const expected = ['foo', 'bar', 'baz.buz'];
+        const r = lib(q);
+
+        expect(r).to.have.property('include').that.eql(expected);
+      });
+    });
+  });
+
   describe('combination', () => {
     describe('filter[name]=foo&page[number]=8&page[size]=10', () => {
       it('returns { filter[Object(name in [foo])], page{page: 8, pageSize: 10} }', () => {

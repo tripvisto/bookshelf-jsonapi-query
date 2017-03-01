@@ -148,6 +148,14 @@ const parseSort = R.curry((q, o) =>
     R.merge(o),
   )(q));
 
+const parseInclude = R.curry((q, o) =>
+  R.pipe(
+    R.propOr({}, 'include'),
+    stringToArray,
+    r => ({ include: r }),
+    R.merge(o),
+  )(q));
+
 /**
  * Parses express req.query so that it can be
  * consumed by the plugin
@@ -161,6 +169,7 @@ export default function parse(q) {
     parseFilter(q),
     parsePage(q),
     parseSort(q),
+    parseInclude(q),
     R.filter(isNotEmpty),
   )({});
 }
