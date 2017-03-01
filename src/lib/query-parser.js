@@ -137,6 +137,17 @@ const parseSort = buildParserFunction(processSort, 'sort');
 
 const parseInclude = buildParserFunction(stringToArray, 'include');
 
+const buildFieldItem = ([k, v]) => ({
+  resource: k,
+  columns: stringToArray(v),
+});
+const processField = R.pipe(
+  R.toPairs,
+  R.filter(p => isNotEmpty(R.last(p))),
+  R.map(buildFieldItem),
+);
+const parseField = buildParserFunction(processField, 'field');
+
 /**
  * Parses express req.query so that it can be
  * consumed by the plugin
@@ -151,6 +162,7 @@ export default function parse(q) {
     parsePage(q),
     parseSort(q),
     parseInclude(q),
+    parseField(q),
     R.filter(isNotEmpty),
   )({});
 }

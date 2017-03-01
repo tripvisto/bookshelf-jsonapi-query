@@ -46,6 +46,11 @@ const query = {
     size: 10,
   },
   sort: 'foo,-bar',
+  field: {
+    resource1: 'foo,bar',
+    resource2: 'bar,baz',
+    resource3: '',
+  },
 };
 
 const takeFromQuery = (path, value) =>
@@ -513,6 +518,46 @@ describe.only('lib/query-parser', () => {
         const r = lib(q);
 
         expect(r).to.have.property('include').that.eql(expected);
+      });
+    });
+  });
+
+  describe('field', () => {
+    describe('field[resource1]=foo,bar&field[resource3]=', () => {
+      it('returns field[Object(resource1 [foo, bar]))]', () => {
+        const q = R.pipe(
+          R.merge(takeFromQuery(['field', 'resource1']).field),
+          R.merge(takeFromQuery(['field', 'resource3']).field),
+          R.assocPath(['field'], R.__, {}), // eslint-disable-line
+        )({});
+        const expected = [
+          {
+            resource: 'resource1',
+            columns: ['foo', 'bar'],
+          },
+        ];
+        const r = lib(q);
+
+        expect(r).to.have.property('field').that.eql(expected);
+      });
+    });
+
+    describe('field[resource1]=foo,bar&field[resource2]=bar,baz', () => {
+      it('returns field[Object(resource1 [foo, bar]), Object(resource2 [bar, baz])]', () => {
+        const q = takeFromQuery(['field']);
+        const expected = [
+          {
+            resource: 'resource1',
+            columns: ['foo', 'bar'],
+          },
+          {
+            resource: 'resource2',
+            columns: ['bar', 'baz'],
+          },
+        ];
+        const r = lib(q);
+
+        expect(r).to.have.property('field').that.eql(expected);
       });
     });
   });
