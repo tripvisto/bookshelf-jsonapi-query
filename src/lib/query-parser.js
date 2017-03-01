@@ -26,6 +26,14 @@ const stringToArray = R.cond([
   [R.T, R.identity],
 ]);
 
+const buildParserFunction = R.curry((fn, key, q, o) =>
+  R.pipe(
+    R.propOr({}, key),
+    fn,
+    r => ({ [key]: r }),
+    R.merge(o),
+  )(q));
+
 const buildFilterItem = R.curry((operator, column, value) => ({
   column,
   operator,
@@ -107,54 +115,27 @@ const processFilter = R.pipe(
   R.map(([x, v]) => parseFilterValue(x, v)),
   R.filter(isNotEmpty),
 );
-
-const parseFilter = R.curry((q, o) =>
-  R.pipe(
-    R.propOr({}, 'filter'),
-    processFilter,
-    r => ({ filter: r }),
-    R.merge(o),
-  )(q));
+const parseFilter = buildParserFunction(processFilter, 'filter');
 
 const processPage = v => ({
   page: R.propOr(1, 'number', v),
   pageSize: R.propOr(20, 'size', v),
 });
-
-const parsePage = R.curry((q, o) =>
-  R.pipe(
-    R.propOr({}, 'page'),
-    processPage,
-    r => ({ page: r }),
-    R.merge(o),
-  )(q));
+const parsePage = buildParserFunction(processPage, 'page');
 
 const buildSortItem = R.ifElse(
   R.compose(R.equals('-'), R.head),
   r => ({ column: R.drop(1, r), order: 'DESC' }),
   r => ({ column: r, order: 'ASC' }),
 );
-
 const processSort = R.pipe(
     stringToArray,
     R.map(buildSortItem),
   );
 
-const parseSort = R.curry((q, o) =>
-  R.pipe(
-    R.propOr({}, 'sort'),
-    processSort,
-    r => ({ sort: r }),
-    R.merge(o),
-  )(q));
+const parseSort = buildParserFunction(processSort, 'sort');
 
-const parseInclude = R.curry((q, o) =>
-  R.pipe(
-    R.propOr({}, 'include'),
-    stringToArray,
-    r => ({ include: r }),
-    R.merge(o),
-  )(q));
+const parseInclude = buildParserFunction(stringToArray, 'include');
 
 /**
  * Parses express req.query so that it can be
