@@ -2,6 +2,7 @@ import R from 'ramda';
 
 const isNotEmpty = R.compose(R.not, R.isEmpty);
 const isObject = R.allPass([R.is(Object), R.compose(R.not, R.isArrayLike)]);
+const isSplitable = R.allPass([R.is(String), R.test(/,/)]);
 const getFirstKey = R.pipe(R.keys, R.head);
 const getFirstValue = R.pipe(R.values, R.head);
 const isNotRelation = R.allPass([R.is(String), R.compose(R.not, R.test(/\./))]);
@@ -21,7 +22,7 @@ const executeOrThrowWhenNil = R.curry((fnError, errParams, fnParams) =>
 
 const stringToArray = R.cond([
   [R.isEmpty, R.empty],
-  [R.allPass([R.is(String), R.test(/,/)]), R.split(',')],
+  [isSplitable, R.compose(R.map(R.trim), R.split(','))],
   [R.is(String), R.of],
   [R.T, R.identity],
 ]);
@@ -148,6 +149,17 @@ const processField = R.pipe(
 );
 const parseField = buildParserFunction(processField, 'field');
 
+const buildAggregateitem = ([k, v]) => ({
+  operator: k,
+  columns: stringToArray(v),
+});
+const processAggregate = R.pipe(
+  R.toPairs,
+  R.filter(p => isNotEmpty(R.last(p))),
+  R.map(buildAggregateitem),
+);
+const parseAggregate = buildParserFunction(processAggregate, 'aggregate');
+
 /**
  * Parses express req.query so that it can be
  * consumed by the plugin
@@ -163,6 +175,7 @@ export default function parse(q) {
     parseSort(q),
     parseInclude(q),
     parseField(q),
+    parseAggregate(q),
     R.filter(isNotEmpty),
   )({});
 }

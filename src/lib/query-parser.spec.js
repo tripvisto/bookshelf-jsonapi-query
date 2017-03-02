@@ -51,6 +51,10 @@ const query = {
     resource2: 'bar,baz',
     resource3: '',
   },
+  aggregate: {
+    sum: 'foo,bar',
+    avg: 'baz',
+  },
 };
 
 const takeFromQuery = (path, value) =>
@@ -558,6 +562,27 @@ describe.only('lib/query-parser', () => {
         const r = lib(q);
 
         expect(r).to.have.property('field').that.eql(expected);
+      });
+    });
+  });
+
+  describe('aggregate', () => {
+    describe('aggregate[sum]=foo,bar&aggregate[avg]=baz', () => {
+      it('returns aggregate[Object(sum [foo, bar]), Object(avg [baz])]', () => {
+        const q = takeFromQuery(['aggregate']);
+        const expected = [
+          {
+            operator: 'sum',
+            columns: ['foo', 'bar'],
+          },
+          {
+            operator: 'avg',
+            columns: ['baz'],
+          },
+        ];
+        const r = lib(q);
+
+        expect(r).to.have.property('aggregate').that.eql(expected);
       });
     });
   });
