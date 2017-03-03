@@ -93,6 +93,7 @@ describe.only('lib/query-parser', () => {
         };
         const r = lib(q);
 
+        expect(r).to.have.all.keys('filter');
         expect(r).to.have.property('filter').that.is.an('array');
         expect(r).to.have.property('filter').that.length(1);
         expect(r).to.have.property('filter').that.include(expected);

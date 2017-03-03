@@ -118,10 +118,15 @@ const processFilter = R.pipe(
 );
 const parseFilter = buildParserFunction(processFilter, 'filter');
 
-const processPage = v => ({
+const buildPageItem = v => ({
   page: R.propOr(1, 'number', v),
   pageSize: R.propOr(20, 'size', v),
 });
+const processPage = R.ifElse(
+  isNotEmpty,
+  buildPageItem,
+  R.empty,
+);
 const parsePage = buildParserFunction(processPage, 'page');
 
 const buildSortItem = R.ifElse(
