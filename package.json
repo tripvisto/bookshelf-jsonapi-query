@@ -5,8 +5,8 @@
   "main": "plugin.js",
   "scripts": {
     "lint": "eslint src/**/*.js",
-    "test": "mocha --compilers js:babel-core/register --bail src/**/*.spec.js",
-    "test:coverage": "istanbul cover _mocha -- --compilers js:babel-core/register --bail src/**/*.spec.js",
+    "test": "mocha --compilers js:babel-core/register --bail \"src/**/*.spec.js\"",
+    "test:coverage": "istanbul cover _mocha -- --compilers js:babel-core/register --bail \"src/**/*.spec.js\"",
     "prepublish": "npm run clean && npm run build",
     "clean": "rm -rf dist",
     "build": "babel -q -L -D ./src/ --out-dir ./dist/ --ignore ./src/**/*.spec.js"
