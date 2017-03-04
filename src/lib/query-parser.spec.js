@@ -63,7 +63,7 @@ const takeFromQuery = (path, value) =>
     R.ifElse(R.isNil, R.always(R.path(path, query)), R.identity)(value),
     {});
 
-describe.only('lib/query-parser', () => {
+describe('lib/query-parser', () => {
   describe('filter', () => {
     describe('filter[like][like]=foo', () => {
       it('throws Unsuppported operator: like', () => {
