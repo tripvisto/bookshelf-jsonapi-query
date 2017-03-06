@@ -65,7 +65,7 @@ const filterItemBuilder = {
 const buildFilter = R.curry((operator, k, v) =>
   R.pipe(
     R.prop(operator),
-    executeOrThrowWhenNil(throwUnsupportedOperator, [operator], [k, v]),
+    f => executeOrThrowWhenNil(throwUnsupportedOperator, [operator], f, [k, v], f),
 )(filterItemBuilder));
 
 const getFilterOperator = R.ifElse(

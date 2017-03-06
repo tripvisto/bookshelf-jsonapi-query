@@ -9,18 +9,14 @@ export const getFirstValue = R.pipe(R.values, R.head);
 
 export const throwError = R.curry((fnError, params) =>
   () => fnError(...params));
-export const executeOrThrowWhen = R.curry((cond, fnError, errParams, fnParams) =>
+export const executeOrThrowWhen = R.curry((cond, fnError, errParams, fn, fnParams, o) =>
   R.ifElse(
     cond,
     throwError(fnError, errParams),
-    f => f(...fnParams),
-));
-export const executeOrThrowWhenNil = R.curry((fnError, errParams, fnParams) =>
-  executeOrThrowWhen(R.isNil, fnError, errParams, fnParams),
-);
-export const executeOrThrowWhenEmpty = R.curry((fnError, errParams, fnParams) =>
-  executeOrThrowWhen(R.isEmpty, fnError, errParams, fnParams),
-);
+    () => fn(...fnParams),
+)(o));
+export const executeOrThrowWhenNil = executeOrThrowWhen(R.isNil);
+export const executeOrThrowWhenEmpty = executeOrThrowWhen(R.isEmpty);
 
 export const stringToArray = R.cond([
   [R.isEmpty, R.empty],
