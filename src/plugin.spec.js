@@ -20,13 +20,24 @@ const Author = Bookshelf.Model.extend({
     name: 'Anonymous',
   },
   posts() {
-    return this.hasMany('Post');
+    return this.hasMany('Post', 'author_id');
   },
   comments() {
-    return this.hasMany('Comment');
+    return this.hasMany('Comment', 'author_id');
+  },
+  avatar() {
+    return this.morphOne('Image', 'imageable');
   },
 });
 Bookshelf.model('Author', Author);
+
+const Image = Bookshelf.Model.extend({
+  tableName: 'images',
+  imageable() {
+    return this.morphTo('imageable', 'Author', 'Post');
+  },
+});
+Bookshelf.model('Image', Image);
 
 const Post = Bookshelf.Model.extend({
   tableName: 'posts',
@@ -35,7 +46,10 @@ const Post = Bookshelf.Model.extend({
     post: 'Lorem ipsum dolor sit amet',
   },
   author() {
-    return this.belongsTo('Author');
+    return this.belongsTo('Author', 'author_id');
+  },
+  comments() {
+    return this.hasMany('Comment');
   },
 });
 Bookshelf.model('Post', Post);
@@ -50,7 +64,7 @@ const Comment = Bookshelf.Model.extend({
   },
   post() {
     return this.belongsTo('Post');
-  }
+  },
 });
 Bookshelf.model('Comment', Comment);
 
@@ -61,6 +75,12 @@ describe('plugin', () => {
         Bookshelf.knex.schema.createTable('users', (t) => {
           t.increments('id').primary();
           t.string('name');
+        }),
+        Bookshelf.knex.schema.createTable('images', (t) => {
+          t.increments('id').primary();
+          t.string('url');
+          t.integer('imageable_id');
+          t.string('imageable_type');
         }),
         Bookshelf.knex.schema.createTable('posts', (t) => {
           t.increments('id').primary();
@@ -111,6 +131,16 @@ describe('plugin', () => {
       )
       .then(() =>
         Promise.all([
+          Image.forge().save({
+            id: 1,
+            imageable_id: 1,
+            imageable_type: 'users',
+            url: 'http://s3.aws.com/image1.png',
+          }),
+        ]),
+      )
+      .then(() =>
+        Promise.all([
           Comment.forge().save({
             id: 1,
             author_id: 1,
@@ -136,6 +166,23 @@ describe('plugin', () => {
 
   after((done) => {
     Bookshelf.knex.destroy(done);
+  });
+
+  describe.skip('morph', () => {
+    describe('fetch avatar', () => {
+      it('returns avatar for id 1',  (done) => {
+        Author.fetchAll({
+          withRelated: ['avatar'],
+          debug: true,
+        })
+          .then(toJSON)
+          .then(r => {
+            console.log(r);
+          })
+          .then(() => done())
+          .catch(done);
+      });
+    });
   });
 
   describe.only('filter', () => {
@@ -181,6 +228,27 @@ describe('plugin', () => {
         const q = {
           filter: {
             title: 'Post 1,Post 2',
+          },
+        };
+
+        Post
+          .fetchJsonapi(q)
+          .then(toJSON)
+          .then((r) => {
+            expect(r).to.have.length(2);
+            expect(r).to.have.deep.property('[0].title', 'Post 1');
+            expect(r).to.have.deep.property('[1].title', 'Post 2');
+          })
+          .then(() => done())
+          .catch(done);
+      });
+    });
+
+    describe('post?filter[author.name]=John F Doe', () => {
+      it('returns posts authored by John F Doe', (done) => {
+        const q = {
+          filter: {
+            'author.name': 'John F Doe',
           },
         };
 
