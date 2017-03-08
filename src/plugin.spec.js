@@ -264,5 +264,22 @@ describe('plugin', () => {
           .catch(done);
       });
     });
+
+    describe('posts?filter[tags.name]=post', () => {
+      it('throws Unknown relation: gender', (done) => {
+        const q = {
+          filter: {
+            'tags.name': 'post',
+          },
+        };
+        Post
+          .fetchJsonapi(q)
+          .then(() => done('Should be rejected'))
+          .catch((e) => {
+            expect(e).to.have.property('message').that.eql('Unknown relation: tags');
+            done();
+          });
+      });
+    });
   });
 });

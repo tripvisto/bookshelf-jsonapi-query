@@ -3,6 +3,7 @@ import R from 'ramda';
 const isSplitable = R.allPass([R.is(String), R.test(/,/)]);
 
 export const isNotEmpty = R.compose(R.not, R.isEmpty);
+export const isNotNil = R.compose(R.not, R.isNil);
 export const isObject = R.allPass([R.is(Object), R.compose(R.not, R.isArrayLike)]);
 export const getFirstKey = R.pipe(R.keys, R.head);
 export const getFirstValue = R.pipe(R.values, R.head);

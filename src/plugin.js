@@ -1,7 +1,8 @@
 import R from 'ramda';
 import parse from './lib/query-parser';
 import {
-  executeOrThrowWhenEmpty,
+  isNotNil,
+  executeOrThrowWhenNil,
 } from './lib/helper';
 
 const shout = (...params) => R.tap(r => console.log(...params, r));
@@ -54,8 +55,14 @@ const buildJoinParams = R.curry((data, relation) => R.cond([
   [R.T, buildDefaultJoinData(relation)],
 ])(data));
 
+const forgeRelatedModel = R.curry((model, relation) => R.pipe(
+  m => m[relation],
+  R.when(isNotNil, R.bind(R.__, model)), // eslint-disable-line
+  f => executeOrThrowWhenNil(throwUnknownRelation, [relation], f, [], f),
+)(model));
+
 const reduceToTableRelation = R.curry(({ model, joins }, v) => ({
-  model: model.clone()[v](),
+  model: forgeRelatedModel(model.clone(), v),
   joins: R.append(buildJoinParams(model.clone()[v]().relatedData, v), joins),
 }));
 
