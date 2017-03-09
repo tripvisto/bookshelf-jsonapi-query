@@ -60,7 +60,7 @@ const Comment = Bookshelf.Model.extend({
     comment: 'Hi there',
   },
   author() {
-    return this.belongsTo('Author');
+    return this.belongsTo('Author', 'author_id');
   },
   post() {
     return this.belongsTo('Post');
@@ -279,6 +279,29 @@ describe('plugin', () => {
             expect(e).to.have.property('message').that.eql('Unknown relation: tags');
             done();
           });
+      });
+    });
+
+    describe('posts?filter[comments.author.name][contains]=john', () => {
+      it('returns posts that has been commented by someone whose name contains john', (done) => {
+        const q = {
+          filter: {
+            'comments.author.name': {
+              contains: 'john',
+            },
+          },
+        };
+
+        Post
+          .fetchJsonapi(q)
+          .then(toJSON)
+          .then((r) => {
+            expect(r).to.have.length(2);
+            expect(r).to.have.deep.property('[0].title', 'Post 1');
+            expect(r).to.have.deep.property('[1].title', 'Post 2');
+          })
+          .then(() => done())
+          .catch(done);
       });
     });
   });

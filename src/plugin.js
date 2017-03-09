@@ -1,4 +1,5 @@
 import R from 'ramda';
+import { singularize } from 'inflection';
 import parse from './lib/query-parser';
 import {
   isNotNil,
@@ -6,6 +7,7 @@ import {
 } from './lib/helper';
 
 const shout = (...params) => R.tap(r => console.log(...params, r));
+const tap = (f, ...params) => R.tap(r => console.log(...params, f(r)));
 
 const toModelParamHash = R.curry((options, model) => ({ model, options }));
 const throwUnknownRelation = (r) => {
@@ -13,6 +15,7 @@ const throwUnknownRelation = (r) => {
 };
 
 const hasNot = R.curry(R.compose(R.not, R.has));
+const notContains = R.curry(R.compose(R.not, R.has));
 const getPropThenFilter = R.curry((prop, filterFn, o) =>
   R.pipe(
     R.propOr([], prop),
@@ -29,6 +32,12 @@ const processFilter = R.curry((q, { model, options }) => R.pipe(
   toModelParamHash(options),
 )(q));
 
+const buildForeignKey = R.ifElse(
+  R.compose(isNotNil, R.prop('foreignKey')),
+  R.prop('foreignKey'),
+  o => `${singularize(o.parentTableName)}_${o.parentIdAttribute}`,
+);
+
 const buildJoinData = R.curry((relation, table, foreignKey, parentKey) => ({
   relation,
   table,
@@ -40,13 +49,13 @@ const buildBelongsToJoinData = R.curry((relation, o) =>
     relation,
     o.targetTableName,
     `${o.targetTableName}.${o.targetIdAttribute}`,
-    `${o.parentTableName}.${o.foreignKey}`,
+    `${o.parentTableName}.${buildForeignKey(o)}`,
   ));
 const buildDefaultJoinData = R.curry((relation, o) =>
   buildJoinData(
     relation,
     o.targetTableName,
-    `${o.targetTableName}.${o.foreignKey}`,
+    `${o.targetTableName}.${buildForeignKey(o)}`,
     `${o.parentTableName}.${o.parentIdAttribute}`,
   ));
 
@@ -59,6 +68,7 @@ const forgeRelatedModel = R.curry((model, relation) => R.pipe(
   m => m[relation],
   R.when(isNotNil, R.bind(R.__, model)), // eslint-disable-line
   f => executeOrThrowWhenNil(throwUnknownRelation, [relation], f, [], f),
+  R.when(R.has('model'), m => m.model.forge()),
 )(model));
 
 const reduceToTableRelation = R.curry(({ model, joins }, v) => ({
@@ -92,11 +102,19 @@ const addJoinPropToQuery = R.curry((model, filters) =>
     filters,
   ));
 
+const removeDuplicateRelations = R.reduce(
+  R.ifElse(
+    R.flip(notContains),
+    R.flip(R.append),
+    R.identity,
+  ),
+  [],
+);
+
 const extractJoins = R.pipe(
   R.map(R.prop('joins')),
   R.flatten,
-  R.sortBy(R.prop('relation')),
-  R.dropRepeatsWith(R.eqBy(R.prop('relation'))),
+  removeDuplicateRelations,
 );
 
 const processFilterWithRelation = R.curry((q, { model, options }) => R.pipe(
