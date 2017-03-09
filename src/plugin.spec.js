@@ -8,6 +8,7 @@ import plugin from './plugin';
 // - authors { id, name }
 // - comments { id, author_id, post_id, comment }
 const toJSON = r => r.toJSON();
+const call = f => () => f();
 
 const Bookshelf = bookshelf(knex({ client: 'sqlite3', connection: { filename: ':memory:' } }));
 
@@ -161,7 +162,7 @@ describe('plugin', () => {
           }),
         ]),
       )
-      .then(() => done());
+      .then(call(done));
   });
 
   after((done) => {
@@ -179,7 +180,7 @@ describe('plugin', () => {
           .then(r => {
             console.log(r);
           })
-          .then(() => done())
+          .then(call(done))
           .catch(done);
       });
     });
@@ -218,7 +219,7 @@ describe('plugin', () => {
             expect(r).to.have.length(1);
             expect(r).to.have.deep.property('[0].title', 'Post 1');
           })
-          .then(() => done())
+          .then(call(done))
           .catch(done);
       });
     });
@@ -239,7 +240,7 @@ describe('plugin', () => {
             expect(r).to.have.deep.property('[0].title', 'Post 1');
             expect(r).to.have.deep.property('[1].title', 'Post 2');
           })
-          .then(() => done())
+          .then(call(done))
           .catch(done);
       });
     });
@@ -260,7 +261,7 @@ describe('plugin', () => {
             expect(r).to.have.deep.property('[0].title', 'Post 1');
             expect(r).to.have.deep.property('[1].title', 'Post 2');
           })
-          .then(() => done())
+          .then(call(done))
           .catch(done);
       });
     });
@@ -300,7 +301,27 @@ describe('plugin', () => {
             expect(r).to.have.deep.property('[0].title', 'Post 1');
             expect(r).to.have.deep.property('[1].title', 'Post 2');
           })
-          .then(() => done())
+          .then(call(done))
+          .catch(done);
+      });
+    });
+
+    describe('posts?include=author', () => {
+      it('returns all posts and its author detail', (done) => {
+        const q = {
+          include: 'author',
+        };
+
+        Post
+          .fetchJsonapi(q)
+          .then(toJSON)
+          .then((r) => {
+            expect(r).to.have.length(3);
+            expect(r).to.have.deep.property('[0].author.name', 'John F Doe');
+            expect(r).to.have.deep.property('[1].author.name', 'John F Doe');
+            expect(r).to.have.deep.property('[2].author.name', 'Andy F Doe');
+          })
+          .then(call(done))
           .catch(done);
       });
     });

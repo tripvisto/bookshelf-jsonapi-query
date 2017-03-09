@@ -126,11 +126,16 @@ const processFilterWithRelation = R.curry((q, { model, options }) => R.pipe(
   ),
 )(q));
 
-const buildFilter = R.curry((q, hash) =>
-  R.pipe(
-    processFilter(q),
-    processFilterWithRelation(q),
+const buildFilter = R.curry((q, hash) => R.pipe(
+  processFilter(q),
+  processFilterWithRelation(q),
 )(hash));
+
+const buildInclude = R.curry((q, { model, options }) => R.pipe(
+  R.prop('include'),
+  R.assoc('withRelated', R.__, options), // eslint-disable-line
+  R.flip(toModelParamHash)(model),
+)(q));
 
 const cloneModel = ref => ref.constructor
   .forge()
@@ -166,6 +171,7 @@ export default function query(Bookshelf) {
    **/
   function fetchJsonapi(q, options = { isResource: false }) {
     try {
+      const parsed = parse(q);
       // Object {model, opts} are used to store
       // the decorated bookshelf model and the parameter
       // should the model be called with. This is useful
@@ -173,7 +179,8 @@ export default function query(Bookshelf) {
       // especially when dealing with include and filtering relations.
       return R.pipe(
         buildModelParamHash(options),
-        buildFilter(parse(q)),
+        buildInclude(parsed),
+        buildFilter(parsed),
         buildJoin,
         fetchModel,
       )(this);
