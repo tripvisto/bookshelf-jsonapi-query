@@ -207,14 +207,17 @@ const buildInclude = R.curry((q, { model, options }) => R.pipe(
 
 const cloneModel = ref => ref.constructor
   .forge()
-  .query(q => R.merge(q, ref.query().clone()));
+  .query(q => Object.assign(q, ref.query().clone()));
 
 const buildModelParamHash = R.curry((opts, model) => R.pipe(
   cloneModel,
   m => ({ model: m, options: opts }),
 )(model));
 
-const fetchModel = ({ model, options }) => model.fetchAll(options);
+const fetchModel = ({ model, options }) => R.cond([
+  [R.compose(R.not, R.propOr(R.T, 'isCollection')), () => model.fetch(options)],
+  [R.T, () => model.fetchAll(options)],
+])(options);
 
 // Apply joins to model
 const applyJoin = R.curry((model, joins) =>
@@ -239,7 +242,7 @@ export default function query(Bookshelf) {
    * @param {Boolean} [options.isResource] `true` when fetching a single resource,
    *  default is set to `false`
    **/
-  function fetchJsonapi(q, options = { isResource: false }) {
+  function fetchJsonapi(q, options = { isCollection: true }) {
     try {
       const parsed = parse(q);
       // Object {model, opts} are used to store

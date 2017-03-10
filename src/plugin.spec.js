@@ -353,5 +353,29 @@ describe('plugin', () => {
           .catch(done);
       });
     });
+
+    describe('posts/1?include=comments', () => {
+      it('returns post with id 1 and include its comments', (done) => {
+        const q = {
+          include: 'comments',
+        };
+        const expectedTitle = 'Post 1';
+
+        Post
+          .where({ id: 1 })
+          .fetchJsonapi(q, {
+            isCollection: false,
+          })
+          .then(toJSON)
+          .then((r) => {
+            expect(r).to.be.an('object');
+            expect(r).to.have.deep.property('title', expectedTitle);
+            expect(r).to.have.deep.property('comments').that.is.an('array');
+            expect(r).to.have.deep.property('comments').that.length(2);
+          })
+          .then(call(done))
+          .catch(done);
+      });
+    });
   });
 });
