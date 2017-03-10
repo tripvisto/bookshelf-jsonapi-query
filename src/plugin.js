@@ -159,12 +159,13 @@ const isRelationInFilter = R.curry((relation, filters) => R.any(
   isRelationInFilterItem(relation),
 )(filters));
 
-const mapWithRelated = R.curry((options, filters, relation) => R.when(
+const mapWithRelated = R.curry((options, filters, relation) => R.ifElse(
   isRelationInFilter(relation),
   R.pipe(
     R.filter(isRelationInFilterItem(relation)),
     buildWithRelatedQuery(relation, getJoins(options)),
   ),
+  R.always(relation),
 )(filters));
 
 const decorateWithRelatedWithQueries = R.curry((options, filters) => R.pipe(

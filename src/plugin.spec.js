@@ -377,5 +377,35 @@ describe('plugin', () => {
           .catch(done);
       });
     });
+
+    describe('posts/1?include=comments,comments.author&filter[comments.author.name][contains]=john', () => {
+      it('returns post with id 1 including comments only from john', (done) => {
+        const q = {
+          filter: {
+            'comments.author.name': {
+              contains: 'john',
+            },
+          },
+          include: 'comments,comments.author',
+        };
+        const expectedTitle = 'Post 1';
+
+        Post
+          .where({ [`${Post.prototype.tableName}.id`]: 1 })
+          .fetchJsonapi(q, {
+            isCollection: false,
+          })
+          .then(toJSON)
+          .then((r) => {
+            expect(r).to.be.an('object');
+            expect(r).to.have.deep.property('title', expectedTitle);
+            expect(r).to.have.deep.property('comments').that.is.an('array');
+            expect(r).to.have.deep.property('comments').that.length(1);
+            expect(r).to.have.deep.property('comments[0].author.name').that.match(/john/i);
+          })
+          .then(call(done))
+          .catch(done);
+      });
+    });
   });
 });
