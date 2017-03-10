@@ -14,6 +14,8 @@ const throwUnknownRelation = (r) => {
   throw new Error(`Unknown relation: ${r}`);
 };
 
+//const lastOfProp = R.curry(R.compose(R.last, R.propOr([])));
+//const composeEqual = R.curry((v, [...fns]) => R.compose(R.equals(v), ...fns));
 const hasNot = R.curry(R.compose(R.not, R.has));
 const notContains = R.curry(R.compose(R.not, R.has));
 const getPropThenFilter = R.curry((prop, filterFn, o) =>
@@ -21,6 +23,13 @@ const getPropThenFilter = R.curry((prop, filterFn, o) =>
     R.propOr([], prop),
     R.filter(filterFn),
 )(o));
+const getJoins = R.propOr([], 'joins');
+const filterPropSatisfies = R.curry((pred, prop, list) =>
+  R.filter(R.propSatisfies(pred, prop), list));
+const containsAnyFromProp = R.curry((prop, l) => R.pipe(
+  R.map(R.compose(R.contains, R.prop(prop))),
+  R.anyPass,
+)(l));
 
 const applyFilter = R.curry((model, filter) =>
   model.query(qb =>
@@ -38,8 +47,9 @@ const buildForeignKey = R.ifElse(
   o => `${singularize(o.parentTableName)}_${o.parentIdAttribute}`,
 );
 
-const buildJoinData = R.curry((relation, table, foreignKey, parentKey) => ({
+const buildJoinData = R.curry((relation, parent, table, foreignKey, parentKey) => ({
   relation,
+  parent,
   table,
   foreignKey,
   parentKey,
@@ -47,6 +57,7 @@ const buildJoinData = R.curry((relation, table, foreignKey, parentKey) => ({
 const buildBelongsToJoinData = R.curry((relation, o) =>
   buildJoinData(
     relation,
+    o.parentTableName,
     o.targetTableName,
     `${o.targetTableName}.${o.targetIdAttribute}`,
     `${o.parentTableName}.${buildForeignKey(o)}`,
@@ -54,6 +65,7 @@ const buildBelongsToJoinData = R.curry((relation, o) =>
 const buildDefaultJoinData = R.curry((relation, o) =>
   buildJoinData(
     relation,
+    o.parentTableName,
     o.targetTableName,
     `${o.targetTableName}.${buildForeignKey(o)}`,
     `${o.parentTableName}.${o.parentIdAttribute}`,
@@ -121,18 +133,74 @@ const processFilterWithRelation = R.curry((q, { model, options }) => R.pipe(
   getPropThenFilter('filter', R.has('relations')),
   addJoinPropToQuery(model), // -> { withParams: [], joins: [] }
   o => toModelParamHash(
-    R.merge(options, R.assoc('joins', extractJoins(o), {})),
+    R.mergeAll([options, R.assoc('joins', extractJoins(o), {}), R.assoc('filters', o, {})]),
     applyFilter(model, o),
   ),
 )(q));
 
+const buildWithRelatedQuery = R.curry((relation, joins, filters) => R.pipe(
+  R.filter(R.propEq('parent', relation)),
+  l => ({
+    [relation]: (qb) => {
+      const pred = R.pipe(R.append({ relation }), containsAnyFromProp)(l);
+      const fs = filterPropSatisfies(pred, 'column', filters);
+      R.forEach(o => qb.join(o.table, o.foreignKey, o.parentKey), l);
+      R.forEach(f => qb.where(f.column, f.operator, f.value), fs);
+    },
+  }),
+)(joins));
+
+const isRelationInFilterItem = R.curry((relation, filter) => R.compose(
+  R.equals(relation),
+  R.head,
+  R.propOr([], 'relations'),
+)(filter));
+const isRelationInFilter = R.curry((relation, filters) => R.any(
+  isRelationInFilterItem(relation),
+)(filters));
+
+const mapWithRelated = R.curry((options, filters, relation) => R.when(
+  isRelationInFilter(relation),
+  R.pipe(
+    R.filter(isRelationInFilterItem(relation)),
+    buildWithRelatedQuery(relation, getJoins(options)),
+  ),
+)(filters));
+
+const decorateWithRelatedWithQueries = R.curry((options, filters) => R.pipe(
+  R.propOr([], 'withRelated'),
+  R.map(mapWithRelated(options, filters)),
+)(options));
+
+const processFilterInRelation = R.curry((q, { model, options }) => R.pipe(
+  getPropThenFilter('filters', R.has('relations')),
+  R.ifElse(
+    R.isEmpty,
+    R.always(options),
+    R.pipe(
+      decorateWithRelatedWithQueries(options),
+      R.assoc('withRelated', R.__, options), // eslint-disable-line
+    ),
+  ),
+  R.flip(toModelParamHash)(model),
+)(options));
+
+// Handles filters
 const buildFilter = R.curry((q, hash) => R.pipe(
   processFilter(q),
+
+  // To handle filter with relations. This includes
+  // building joins and apply the filter to model
   processFilterWithRelation(q),
+
+  // To filter the relations in included model to
+  // comply with the defined filter
+  processFilterInRelation(q),
 )(hash));
 
+// Handles includes
 const buildInclude = R.curry((q, { model, options }) => R.pipe(
-  R.prop('include'),
+  R.propOr([], 'include'),
   R.assoc('withRelated', R.__, options), // eslint-disable-line
   R.flip(toModelParamHash)(model),
 )(q));
@@ -148,11 +216,13 @@ const buildModelParamHash = R.curry((opts, model) => R.pipe(
 
 const fetchModel = ({ model, options }) => model.fetchAll(options);
 
+// Apply joins to model
 const applyJoin = R.curry((model, joins) =>
   model.query(q =>
     R.forEach(v => q.join(v.table, v.foreignKey, v.parentKey), joins),
   ));
 
+// Handles joins
 const buildJoin = ({ model, options }) => R.pipe(
   R.propOr([], 'joins'),
   applyJoin(model),

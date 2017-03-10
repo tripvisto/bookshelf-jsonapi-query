@@ -325,5 +325,33 @@ describe('plugin', () => {
           .catch(done);
       });
     });
+
+    describe('posts?filter[comments.author.name][contains]=john&include=comments', () => {
+      it('returns all posts which has been commented by somebody whose name contains john', (done) => {
+        const q = {
+          filter: {
+            'comments.author.name': {
+              contains: 'john',
+            },
+          },
+          include: 'comments',
+        };
+        const expectedComment1 = 'comment 1';
+        const expectedComment2 = 'comment 1 in post 2';
+
+        Post
+          .fetchJsonapi(q)
+          .then(toJSON)
+          .then((r) => {
+            expect(r).to.have.length(2);
+            expect(r).to.have.deep.property('[0].comments').that.length(1);
+            expect(r).to.have.deep.property('[0].comments[0].comment', expectedComment1);
+            expect(r).to.have.deep.property('[1].comments').that.length(1);
+            expect(r).to.have.deep.property('[1].comments[0].comment', expectedComment2);
+          })
+          .then(call(done))
+          .catch(done);
+      });
+    });
   });
 });
