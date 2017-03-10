@@ -46,7 +46,7 @@ const query = {
     size: 10,
   },
   sort: 'foo,-bar',
-  field: {
+  fields: {
     resource1: 'foo,bar',
     resource2: 'bar,baz',
     resource3: '',
@@ -528,12 +528,12 @@ describe('lib/query-parser', () => {
   });
 
   describe('field', () => {
-    describe('field[resource1]=foo,bar&field[resource3]=', () => {
-      it('returns field[Object(resource1 [foo, bar]))]', () => {
+    describe('fields[resource1]=foo,bar&fields[resource3]=', () => {
+      it('returns fields[Object(resource1 [foo, bar]))]', () => {
         const q = R.pipe(
-          R.merge(takeFromQuery(['field', 'resource1']).field),
-          R.merge(takeFromQuery(['field', 'resource3']).field),
-          R.assocPath(['field'], R.__, {}), // eslint-disable-line
+          R.merge(takeFromQuery(['fields', 'resource1']).fields),
+          R.merge(takeFromQuery(['fields', 'resource3']).fields),
+          R.assocPath(['fields'], R.__, {}), // eslint-disable-line
         )({});
         const expected = [
           {
@@ -543,13 +543,13 @@ describe('lib/query-parser', () => {
         ];
         const r = lib(q);
 
-        expect(r).to.have.property('field').that.eql(expected);
+        expect(r).to.have.property('fields').that.eql(expected);
       });
     });
 
-    describe('field[resource1]=foo,bar&field[resource2]=bar,baz', () => {
+    describe('fieldss[resource1]=foo,bar&fields[resource2]=bar,baz', () => {
       it('returns field[Object(resource1 [foo, bar]), Object(resource2 [bar, baz])]', () => {
-        const q = takeFromQuery(['field']);
+        const q = takeFromQuery(['fields']);
         const expected = [
           {
             resource: 'resource1',
@@ -562,7 +562,7 @@ describe('lib/query-parser', () => {
         ];
         const r = lib(q);
 
-        expect(r).to.have.property('field').that.eql(expected);
+        expect(r).to.have.property('fields').that.eql(expected);
       });
     });
   });
