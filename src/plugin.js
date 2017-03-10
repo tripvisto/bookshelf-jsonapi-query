@@ -206,6 +206,17 @@ const buildInclude = R.curry((q, { model, options }) => R.pipe(
   R.flip(toModelParamHash)(model),
 )(q));
 
+// Handles pagination
+const buildPage = R.curry((q, { model, options }) => R.pipe(
+  R.propOr({}, 'page'),
+  R.ifElse(
+    R.isEmpty,
+    R.always(options),
+    R.merge(options),
+  ),
+  R.flip(toModelParamHash)(model),
+)(q));
+
 const cloneModel = ref => ref.constructor
   .forge()
   .query(q => Object.assign(q, ref.query().clone()));
@@ -217,7 +228,7 @@ const buildModelParamHash = R.curry((opts, model) => R.pipe(
 
 const fetchModel = ({ model, options }) => R.cond([
   [R.compose(R.not, R.propOr(R.T, 'isCollection')), () => model.fetch(options)],
-  [R.T, () => model.fetchAll(options)],
+  [R.T, () => model.fetchPage(options)],
 ])(options);
 
 // Apply joins to model
@@ -234,6 +245,8 @@ const buildJoin = ({ model, options }) => R.pipe(
 )(options);
 
 export default function query(Bookshelf) {
+  Bookshelf.plugin('pagination');
+
   /**
    * Fetches the model with the given jsonapi query object.
    *
@@ -254,6 +267,7 @@ export default function query(Bookshelf) {
       return R.pipe(
         buildModelParamHash(options),
         buildInclude(parsed),
+        buildPage(parsed),
         buildFilter(parsed),
         buildJoin,
         fetchModel,

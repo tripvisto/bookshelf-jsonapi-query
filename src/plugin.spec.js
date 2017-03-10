@@ -407,5 +407,31 @@ describe('plugin', () => {
           .catch(done);
       });
     });
+
+    describe('posts?page[number]=1&page[size]=2', () => {
+      it('returns 2 posts and contains pagination metadata', (done) => {
+        const q = {
+          page: {
+            number: 1,
+            size: 2,
+          },
+        };
+
+        Post
+          .fetchJsonapi(q)
+          .tap((r) => {
+            expect(r).to.have.deep.property('pagination.rowCount', 3);
+            expect(r).to.have.deep.property('pagination.pageCount', 2);
+            expect(r).to.have.deep.property('pagination.page', 1);
+            expect(r).to.have.deep.property('pagination.pageSize', 2);
+          })
+          .then(toJSON)
+          .then((r) => {
+            expect(r).to.have.length(2);
+          })
+          .then(call(done))
+          .catch(done);
+      });
+    });
   });
 });
