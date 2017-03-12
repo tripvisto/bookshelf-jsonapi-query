@@ -433,5 +433,50 @@ describe('plugin', () => {
           .catch(done);
       });
     });
+
+    describe('posts?fields[posts]=title', () => {
+      it('returns posts containing only title and id field', (done) => {
+        const q = {
+          fields: {
+            posts: 'title',
+          },
+        };
+
+        Post
+          .fetchJsonapi(q)
+          .then(toJSON)
+          .then((r) => {
+            expect(r).to.have.length(3);
+            r.forEach(i => expect(i).to.have.all.keys('id', 'title'));
+          })
+          .then(call(done))
+          .catch(done);
+      });
+    });
+
+    describe('posts?fields[posts]=title&fields[comments]=comment&includecomments', () => {
+      it('returns posts containing title field their comments containing only comment field', (done) => {
+        const q = {
+          fields: {
+            posts: 'title',
+            comments: 'comment',
+          },
+          include: 'comments',
+        };
+
+        Post
+          .fetchJsonapi(q)
+          .then(toJSON)
+          .then((r) => {
+            expect(r).to.have.deep.property('[0]').to.have.all.keys('id', 'comments', 'title');
+            expect(r).to.have.deep.property('[0].comments[0]').that.have.all.keys('comment', 'post_id');
+            expect(r).to.have.deep.property('[1]').to.have.all.keys('id', 'comments', 'title');
+            expect(r).to.have.deep.property('[1].comments[0]').that.have.all.keys('comment', 'post_id');
+            expect(r).to.have.deep.property('[2]').to.have.all.keys('id', 'comments', 'title');
+          })
+          .then(call(done))
+          .catch(done);
+      });
+    });
   });
 });

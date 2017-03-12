@@ -14,10 +14,7 @@ const throwUnknownRelation = (r) => {
   throw new Error(`Unknown relation: ${r}`);
 };
 
-//const lastOfProp = R.curry(R.compose(R.last, R.propOr([])));
-//const composeEqual = R.curry((v, [...fns]) => R.compose(R.equals(v), ...fns));
 const hasNot = R.curry(R.compose(R.not, R.has));
-const notContains = R.curry(R.compose(R.not, R.has));
 const getPropThenFilter = R.curry((prop, filterFn, o) =>
   R.pipe(
     R.propOr([], prop),
@@ -30,6 +27,9 @@ const containsAnyFromProp = R.curry((prop, l) => R.pipe(
   R.map(R.compose(R.contains, R.prop(prop))),
   R.anyPass,
 )(l));
+const findIndexInMixType = R.curry((prop, list) =>
+  R.findIndex(R.ifElse(R.is(Object), R.has(prop), R.equals(prop)), list));
+const toObject = R.curry((k, v) => ({ [k]: v }));
 
 const applyFilter = R.curry((model, filter) =>
   model.query(qb =>
@@ -114,19 +114,10 @@ const addJoinPropToQuery = R.curry((model, filters) =>
     filters,
   ));
 
-const removeDuplicateRelations = R.reduce(
-  R.ifElse(
-    R.flip(notContains),
-    R.flip(R.append),
-    R.identity,
-  ),
-  [],
-);
-
 const extractJoins = R.pipe(
   R.map(R.prop('joins')),
   R.flatten,
-  removeDuplicateRelations,
+  R.uniq,
 );
 
 const processFilterWithRelation = R.curry((q, { model, options }) => R.pipe(
@@ -140,14 +131,14 @@ const processFilterWithRelation = R.curry((q, { model, options }) => R.pipe(
 
 const buildWithRelatedQuery = R.curry((relation, joins, filters) => R.pipe(
   R.filter(R.propEq('parent', relation)),
-  l => ({
-    [relation]: (qb) => {
-      const pred = R.pipe(R.append({ relation }), containsAnyFromProp)(l);
-      const fs = filterPropSatisfies(pred, 'column', filters);
-      R.forEach(o => qb.join(o.table, o.foreignKey, o.parentKey), l);
-      R.forEach(f => qb.where(f.column, f.operator, f.value), fs);
-    },
-  }),
+  l => (qb) => {
+    const pred = R.pipe(R.append({ relation }), containsAnyFromProp)(l);
+    const fs = filterPropSatisfies(pred, 'column', filters);
+    R.forEach(o => qb.join(o.table, o.foreignKey, o.parentKey), l);
+    R.forEach(f => qb.where(f.column, f.operator, f.value), fs);
+    return qb;
+  },
+  toObject(relation),
 )(joins));
 
 const isRelationInFilterItem = R.curry((relation, filter) => R.compose(
@@ -217,6 +208,72 @@ const buildPage = R.curry((q, { model, options }) => R.pipe(
   R.flip(toModelParamHash)(model),
 )(q));
 
+const applySelect = R.curry((model, f) => model.query(qb => qb.select(model.idAttribute, f)));
+
+const processFieldsWhenNotInRelation = R.curry((model, options, field) => R.pipe(
+  () => applySelect(model, R.propOr('*', 'columns', field)),
+  toModelParamHash(options),
+));
+
+/**
+ * :: Object -> Object | String -> Object
+ *
+ * Decorates an item in `withRelated` option with `select` query. To make the
+ * relation works, tables' primary key and also foreign key(s) need to be in
+ * select statement also.
+ *
+ * TODO:
+ * - To include foreign key when decorating relation. Without it, it will fail
+ *   the test.
+ *
+ * @private
+ *
+ * @param {Object} field - The object containing fields and resource to select
+ * @param {Object|String} relation - The relation in `withRelated` to be decorated
+ * @return {Object} The decorated relation
+ */
+const decorateRelationItemWithSelect = R.curry((field, relation) => R.pipe(
+  R.ifElse(
+    R.is(Object),
+    R.pipe(
+      R.prop(field.resource),
+      f => R.pipe(f, qb => qb.select(R.propOr('*', 'columns', field))),
+      toObject(relation),
+    ),
+    R.flip(toObject)(qb => qb.select(R.propOr('*', 'columns', field))),
+  ),
+)(relation));
+
+const processFieldsWhenInRelation = R.curry((model, options, field, i) => R.pipe(
+  R.prop('withRelated'),
+  R.nth(i),
+  decorateRelationItemWithSelect(field),
+  tap(R.prop('comments'), 'hello'),
+  o => R.adjust(R.always(o), i, R.propOr('withRelated', options)),
+  R.flip(R.assoc('withRelated'))(options),
+  R.flip(toModelParamHash)(model),
+)(options));
+
+const processFields = R.curry(({ model, options }, v) => R.pipe(
+  R.propOr([], 'withRelated'),
+  findIndexInMixType(R.prop('resource', v)),
+  R.ifElse(
+    R.gt(0),
+    processFieldsWhenNotInRelation(model, options, v),
+    processFieldsWhenInRelation(model, options, v),
+  ),
+)(options));
+
+// Handles fields. Whan a resource is included in `withRelated`
+// (as a relation), that particular relation will be decorated
+// to include `select([columns])`.
+const buildFields = R.curry((q, { model, options }) => R.pipe(
+  R.propOr([], 'fields'),
+  // resources that are not in withRelated
+  // assumed to be the resource of this model
+  R.reduce(processFields, { model, options }),
+)(q));
+
 const cloneModel = ref => ref.constructor
   .forge()
   .query(q => Object.assign(q, ref.query().clone()));
@@ -259,6 +316,7 @@ export default function query(Bookshelf) {
   function fetchJsonapi(q, options = { isCollection: true }) {
     try {
       const parsed = parse(q);
+
       // Object {model, opts} are used to store
       // the decorated bookshelf model and the parameter
       // should the model be called with. This is useful
@@ -269,6 +327,7 @@ export default function query(Bookshelf) {
         buildInclude(parsed),
         buildPage(parsed),
         buildFilter(parsed),
+        buildFields(parsed),
         buildJoin,
         fetchModel,
       )(this);
