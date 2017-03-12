@@ -478,5 +478,24 @@ describe('plugin', () => {
           .catch(done);
       });
     });
+
+    describe('posts?sort=-id', () => {
+      it('return posts with descending order by id', (done) => {
+        const q = {
+          sort: '-id',
+        };
+
+        Post
+          .fetchJsonapi(q)
+          .then(toJSON)
+          .then((r) => {
+            expect(r).to.have.deep.property('[0].id', 3);
+            expect(r).to.have.deep.property('[1].id', 2);
+            expect(r).to.have.deep.property('[2].id', 1);
+          })
+          .then(call(done))
+          .catch(done);
+      })
+    })
   });
 });

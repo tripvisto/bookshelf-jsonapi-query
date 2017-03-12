@@ -248,7 +248,6 @@ const processFieldsWhenInRelation = R.curry((model, options, field, i) => R.pipe
   R.prop('withRelated'),
   R.nth(i),
   decorateRelationItemWithSelect(field),
-  tap(R.prop('comments'), 'hello'),
   o => R.adjust(R.always(o), i, R.propOr('withRelated', options)),
   R.flip(R.assoc('withRelated'))(options),
   R.flip(toModelParamHash)(model),
@@ -301,6 +300,16 @@ const buildJoin = ({ model, options }) => R.pipe(
   toModelParamHash(options),
 )(options);
 
+const applySortItem = R.curry((model, sort) => model.orderBy(sort.column, sort.order));
+
+const applySort = R.curry((model, sorts) => R.reduce(applySortItem, model, sorts));
+
+const buildSort = R.curry((q, { model, options }) => R.pipe(
+  R.propOr([], 'sort'),
+  applySort(model),
+  toModelParamHash(options),
+)(q));
+
 export default function query(Bookshelf) {
   Bookshelf.plugin('pagination');
 
@@ -329,6 +338,7 @@ export default function query(Bookshelf) {
         buildFilter(parsed),
         buildFields(parsed),
         buildJoin,
+        buildSort(parsed),
         fetchModel,
       )(this);
     } catch (e) {
