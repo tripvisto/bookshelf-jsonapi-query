@@ -204,6 +204,18 @@ describe('plugin', () => {
       });
     });
 
+    describe('posts?', () => {
+      it('returns model without aggregation', (done) => {
+        Post
+          .fetchJsonapi()
+          .then((r) => {
+            expect(r).to.not.have.property('aggregation');
+          })
+          .then(call(done))
+          .catch(done);
+      });
+    });
+
     describe('posts?filter[title]=Post 1', () => {
       it('returns post with title Post 1', (done) => {
         const q = {
@@ -499,7 +511,7 @@ describe('plugin', () => {
     });
 
     describe('posts?aggregate[foo]', () => {
-      it('throws Unsuppported aggregation: average', (done) => {
+      it('throws Unsuppported aggregation: foo', (done) => {
         const q = {
           aggregate: {
             foo: 'id',
@@ -510,7 +522,7 @@ describe('plugin', () => {
           .fetchJsonapi(q)
           .then(() => done('should be rejected'))
           .catch((e) => {
-            expect(e).to.have.property('message').that.eql('Unsuppported aggregation: foo');
+            expect(e).to.have.property('message').that.eql('Unsupported aggregation: foo');
             done();
           });
       });
