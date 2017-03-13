@@ -454,8 +454,8 @@ describe('plugin', () => {
       });
     });
 
-    describe('posts?fields[posts]=title&fields[comments]=comment&includecomments', () => {
-      it('returns posts containing title field their comments containing only comment field', (done) => {
+    describe('posts?fields[posts]=title&fields[comments]=comment&include=comments', () => {
+      it('returns posts containing title field with its comments containing only comment field', (done) => {
         const q = {
           fields: {
             posts: 'title',
