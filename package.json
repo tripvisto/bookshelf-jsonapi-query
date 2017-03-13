@@ -11,6 +11,10 @@
     "clean": "rm -rf dist",
     "build": "babel -q -L -D ./src/ --out-dir ./dist/ --ignore ./src/**/*.spec.js"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tripvisto/bookshelf-jsonapi-query/"
+  },
   "keywords": [
     "bookshelf",
     "jsonapi",
@@ -44,7 +48,7 @@
       "no-confusing-arrow": 0
     }
   },
-  "license": "ISC",
+  "license": "MIT",
   "devDependencies": {
     "babel": "^6.23.0",
     "babel-core": "^6.23.1",
