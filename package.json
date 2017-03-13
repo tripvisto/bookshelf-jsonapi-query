@@ -1,6 +1,6 @@
 {
   "name": "bookshelf-fetch-jsonapi",
-  "version": "1.0.0-beta",
+  "version": "1.0.0-beta.0",
   "description": "Fetch bookshelf model using jsonapi query parameter",
   "main": "plugin.js",
   "scripts": {
