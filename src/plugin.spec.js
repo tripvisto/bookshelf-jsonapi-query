@@ -171,7 +171,7 @@ describe('plugin', () => {
 
   describe.skip('morph', () => {
     describe('fetch avatar', () => {
-      it('returns avatar for id 1',  (done) => {
+      it('returns avatar for id 1', (done) => {
         Author.fetchAll({
           withRelated: ['avatar'],
           debug: true,
@@ -495,7 +495,57 @@ describe('plugin', () => {
           })
           .then(call(done))
           .catch(done);
-      })
-    })
+      });
+    });
+
+    describe('posts?aggregate[foo]', () => {
+      it('throws Unsuppported aggregation: average', (done) => {
+        const q = {
+          aggregate: {
+            foo: 'id',
+          },
+        };
+
+        Post
+          .fetchJsonapi(q)
+          .then(() => done('should be rejected'))
+          .catch((e) => {
+            expect(e).to.have.property('message').that.eql('Unsuppported aggregation: foo');
+            done();
+          });
+      });
+    });
+
+    describe('posts?aggregate[count]=id&aggregate[sum]=id&filter[author.name][contains]=john', () => {
+      it('returns a Bookshelf Collection with aggregation metadata', (done) => {
+        const q = {
+          aggregate: {
+            count: 'id',
+            sum: 'id',
+          },
+          filter: {
+            'author.name': {
+              contains: 'john',
+            },
+          },
+        };
+        const expectedCount = 2;
+        const expectedSum = 3;
+
+        Post
+          .fetchJsonapi(q)
+          .then((r) => {
+            expect(r).to.have.property('aggregation')
+              .that.have.all.keys(
+                'count_id',
+                'sum_id',
+              );
+            expect(r).to.have.deep.property('aggregation.count_id', expectedCount);
+            expect(r).to.have.deep.property('aggregation.sum_id', expectedSum);
+          })
+          .then(call(done))
+          .catch(done);
+      });
+    });
   });
 });
