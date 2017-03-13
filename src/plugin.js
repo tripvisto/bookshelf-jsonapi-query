@@ -15,7 +15,7 @@ const throwUnknownRelation = (r) => {
   throw new Error(`Unknown relation: ${r}`);
 };
 const throwUnsupportedAggregation = (a) => {
-  throw new Error(`Unsuppported aggregation: ${a}`);
+  throw new Error(`Unsupported aggregation: ${a}`);
 };
 
 const hasNot = R.curry(R.compose(R.not, R.has));
@@ -346,10 +346,18 @@ const buildAggregateModel = R.curry((model, aggregations) => R.pipe(
   m => m.query(applyAggregate(m.tableName, aggregations)),
 )());
 
-const buildAggregate = R.curry((q, { model, options }) => R.pipe(
-  R.propOr([], 'aggregate'),
+const processAggregate = R.curry((model, options, aggregations) => R.pipe(
   buildAggregateModel(model),
   o => ({ model, options, aggregateModel: o }),
+)(aggregations));
+
+const buildAggregate = R.curry((q, { model, options }) => R.pipe(
+  R.propOr([], 'aggregate'),
+  R.ifElse(
+    R.isEmpty,
+    R.always({ model, options }),
+    processAggregate(model, options),
+  ),
 )(q));
 
 export default function query(Bookshelf) {
