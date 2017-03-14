@@ -134,15 +134,24 @@ const processFilterWithRelation = R.curry((q, { model, options }) => R.pipe(
 )(q));
 
 const buildWithRelatedQuery = R.curry((relation, joins, filters) => R.pipe(
-  R.filter(R.propEq('parent', relation)),
-  l => (qb) => {
-    const pred = R.pipe(R.append({ relation }), containsAnyFromProp)(l);
-    const fs = filterPropSatisfies(pred, 'column', filters);
-    R.forEach(o => qb.join(o.table, o.foreignKey, o.parentKey), l);
-    R.forEach(f => qb.where(f.column, f.operator, f.value), fs);
-    return qb;
-  },
-  toObject(relation),
+  R.find(R.propEq('relation', relation)),
+  R.propOr('', 'table'),
+  R.ifElse(
+    R.isEmpty,
+    R.identity,
+    R.pipe(
+      // Filter joins that its parent equals to related table name
+      R.useWith(R.flip(R.filter), [R.identity, R.propEq('parent')])(joins),
+      l => (qb) => {
+        const pred = R.pipe(R.append({ relation }), containsAnyFromProp)(l);
+        const fs = filterPropSatisfies(pred, 'column', filters);
+        R.forEach(o => qb.join(o.table, o.foreignKey, o.parentKey), l);
+        R.forEach(f => qb.where(f.column, f.operator, f.value), fs);
+        return qb;
+      },
+      toObject(relation),
+    ),
+  ),
 )(joins));
 
 const isRelationInFilterItem = R.curry((relation, filter) => R.compose(

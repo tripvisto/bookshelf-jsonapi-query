@@ -26,6 +26,9 @@ const Author = Bookshelf.Model.extend({
   comments() {
     return this.hasMany('Comment', 'author_id');
   },
+  references() {
+    return this.hasMany('Reference', 'author_id');
+  },
   avatar() {
     return this.morphOne('Image', 'imageable');
   },
@@ -52,6 +55,9 @@ const Post = Bookshelf.Model.extend({
   comments() {
     return this.hasMany('Comment');
   },
+  references() {
+    return this.hasMany('Reference');
+  },
 });
 Bookshelf.model('Post', Post);
 
@@ -68,6 +74,17 @@ const Comment = Bookshelf.Model.extend({
   },
 });
 Bookshelf.model('Comment', Comment);
+
+const Reference = Bookshelf.Model.extend({
+  tableName: 'ref',
+  author() {
+    return this.belongsTo('Author', 'author_id');
+  },
+  post() {
+    return this.belongsTo('Post');
+  },
+});
+Bookshelf.model('Reference', Reference);
 
 describe('plugin', () => {
   before((done) => {
@@ -94,6 +111,12 @@ describe('plugin', () => {
           t.int('author_id');
           t.int('post_id');
           t.string('comment');
+        }),
+        Bookshelf.knex.schema.createTable('ref', (t) => {
+          t.increments('id').primary();
+          t.int('author_id');
+          t.int('post_id');
+          t.string('url');
         }),
       ])
       .then(() =>
@@ -162,6 +185,28 @@ describe('plugin', () => {
           }),
         ]),
       )
+      .then(() =>
+        Promise.all([
+          Reference.forge().save({
+            id: 1,
+            author_id: 1,
+            post_id: 1,
+            url: 'http://wikipedia.org/ref1',
+          }),
+          Reference.forge().save({
+            id: 2,
+            author_id: 2,
+            post_id: 1,
+            url: 'http://wikipedia.org/ref2',
+          }),
+          Reference.forge().save({
+            id: 3,
+            author_id: 1,
+            post_id: 2,
+            url: 'http://wikipedia.org/ref3',
+          }),
+        ]),
+      )
       .then(call(done));
   });
 
@@ -186,7 +231,7 @@ describe('plugin', () => {
     });
   });
 
-  describe.only('filter', () => {
+  describe('filter', () => {
     describe('posts?filter[title][like]=roo', () => {
       it('throws Unsuppported operator: like', (done) => {
         const q = {
@@ -194,6 +239,7 @@ describe('plugin', () => {
             title: { like: 'roo' },
           },
         };
+
         Post
           .fetchJsonapi(q)
           .then(() => done('Should be rejected'))
@@ -365,6 +411,35 @@ describe('plugin', () => {
           .catch(done);
       });
     });
+
+    describe('posts?filter[references.author.name][contains]=john&include=references', () => {
+      it('returns all posts having references authored by somebody whose name contains john', (done) => {
+        const q = {
+          filter: {
+            'references.author.name': {
+              contains: 'john',
+            },
+          },
+          include: 'references',
+        };
+        const expectedRef1 = 'http://wikipedia.org/ref1';
+        const expectedRef2 = 'http://wikipedia.org/ref3';
+
+        Post
+          .fetchJsonapi(q)
+          .then(toJSON)
+          .then((r) => {
+            expect(r).to.have.length(2);
+            expect(r).to.have.deep.property('[0].references').that.length(1);
+            expect(r).to.have.deep.property('[0].references[0].url', expectedRef1);
+            expect(r).to.have.deep.property('[1].references').that.length(1);
+            expect(r).to.have.deep.property('[1].references[0].url', expectedRef2);
+          })
+          .then(call(done))
+          .catch(done);
+      });
+    });
+
 
     describe('posts/1?include=comments', () => {
       it('returns post with id 1 and include its comments', (done) => {

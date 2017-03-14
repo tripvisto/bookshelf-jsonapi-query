@@ -31,4 +31,4 @@ Posts.fetchJsonapi(q);
 
 The `fetchJsonapi` takes a query object as its parameter.
 The query object are most likely constructed by web frameworks
-such as [expressjs][http://expressjs.com/] from a URL query.
+such as [expressjs](http://expressjs.com/) from a URL query.
