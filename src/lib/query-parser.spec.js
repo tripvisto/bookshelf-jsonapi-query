@@ -26,6 +26,10 @@ const query = {
     like: {
       like: 'foo',
     },
+    range: {
+      gte: '2017/01/01',
+      lte: '2017/01/30',
+    },
     'related.in': 'foo',
     'related.inArray': 'foo,bar,baz',
     'related.lt': {
@@ -289,6 +293,28 @@ describe('lib/query-parser', () => {
           operator: 'in',
           value: ['foo'],
         };
+
+        expect(r).to.have.property('filter').that.length(2);
+        expect(r).to.have.property('filter').that.include(expected1);
+        expect(r).to.have.property('filter').that.include(expected2);
+      });
+    });
+
+    describe('filter[range][gte]=2017/01/01&filter[range][lte]=2017/01/30', () => {
+      it('returns filter[Object(range >= 2017/01/01), Object(range <= 2017/01/30)]', () => {
+        const q = takeFromQuery(['filter', 'range']);
+        const expected1 = {
+          column: 'range',
+          operator: '>=',
+          value: '2017/01/01',
+        };
+        const expected2 = {
+          column: 'range',
+          operator: '<=',
+          value: '2017/01/30',
+        };
+
+        const r = lib(q);
 
         expect(r).to.have.property('filter').that.length(2);
         expect(r).to.have.property('filter').that.include(expected1);
