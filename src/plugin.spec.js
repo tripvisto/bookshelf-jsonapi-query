@@ -105,6 +105,7 @@ describe('plugin', () => {
           t.int('author_id');
           t.string('title');
           t.string('post');
+          t.timestamp('published');
         }),
         Bookshelf.knex.schema.createTable('comments', (t) => {
           t.increments('id').primary();
@@ -138,18 +139,21 @@ describe('plugin', () => {
             author_id: 1,
             title: 'Post 1',
             post: 'Post 1 content',
+            published: '2017-05-01 08:00:00',
           }),
           Post.forge().save({
             id: 2,
             author_id: 1,
             title: 'Post 2',
             post: 'Post number 2',
+            published: '2017-05-02 08:00:00',
           }),
           Post.forge().save({
             id: 3,
             author_id: 2,
             title: 'Post 3',
             post: 'Post by author #2',
+            published: '2017-05-03 09:30:00',
           }),
         ]),
       )
@@ -303,7 +307,33 @@ describe('plugin', () => {
       });
     });
 
-    describe('post?filter[author.name]=John F Doe', () => {
+    describe('posts?filter[published][gte]=2017-05-01 00:00:00&filter[published][lte]=2017-05-03 08:00:00', () => {
+      it('returns posts between the date range', (done) => {
+        const q = {
+          filter: {
+            published: {
+              gte: '2017-05-01 00:00:00',
+              lte: '2017-05-03 08:00:00',
+            },
+          },
+        };
+
+        Post
+          .fetchJsonapi(q)
+          .then(toJSON)
+          .then((r) => {
+            expect(r).to.have.length(2);
+            expect(r).to.have.deep.property('[0].id', 1);
+            expect(r).to.have.deep.property('[0].published', '2017-05-01 08:00:00');
+            expect(r).to.have.deep.property('[1].id', 2);
+            expect(r).to.have.deep.property('[1].published', '2017-05-02 08:00:00');
+          })
+          .then(call(done))
+          .catch(done);
+      });
+    });
+
+    describe('posts?filter[author.name]=John F Doe', () => {
       it('returns posts authored by John F Doe', (done) => {
         const q = {
           filter: {

@@ -98,8 +98,41 @@ const parseFilterValue = R.curry((k, v) =>
     [R.T, R.empty],
   ])(k));
 
+const denormalizeFilterMapper = (a, [k, v]) => R.ifElse(
+  isObject,
+  R.pipe(
+    R.toPairs,
+    R.reduce((acc, [x, y]) => R.append([k, { [x]: y }], acc), a),
+  ),
+  R.pipe(
+    i => ([k, i]),
+    R.flip(R.append)(a),
+  ),
+)(v);
+
+// To denormalize a column that has more that
+// one filter on it.
+// [
+//   [
+//    range,
+//     {
+//       gte: '2017/01/01',
+//       lte: '2017/01/30',
+//     }
+//   ],
+// ]
+// To
+// [
+//   [ range, { gte: '2017/01/01' } ],
+//   [ range, { lte: '2017/01/30' } ],
+// ]
+const denormalizeFilter = R.pipe(
+  R.reduce(denormalizeFilterMapper, []),
+);
+
 const processFilter = R.pipe(
   R.toPairs,
+  denormalizeFilter,
   R.map(([x, v]) => parseFilterValue(x, v)),
   R.filter(isNotEmpty),
 );
